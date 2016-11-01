@@ -1,11 +1,6 @@
-all: parser
+all: xy-complier
 
-OBJS = parser.o  \
-       codegen.o \
-       main.o    \
-       tokens.o  \
-       corefn.o  \
-	   native.o  \
+OBJS = parser.o codegen.o main.o tokens.o native.o
 
 LLVMCONFIG = llvm-config
 CPPFLAGS = `$(LLVMCONFIG) --cppflags` -std=c++11
@@ -13,7 +8,7 @@ LDFLAGS = `$(LLVMCONFIG) --ldflags` -lpthread -ldl -lz -lncurses -rdynamic
 LIBS = `$(LLVMCONFIG) --libs`
 
 clean:
-	$(RM) -rf parser.cpp parser.hpp parser tokens.cpp $(OBJS)
+	$(RM) -rf parser.cpp parser.hpp xy-complier tokens.cpp $(OBJS)
 
 parser.cpp: parser.y
 	bison -d -o $@ $^
@@ -27,8 +22,8 @@ tokens.cpp: tokens.l parser.hpp
 	g++ -c $(CPPFLAGS) -o $@ $<
 
 
-parser: $(OBJS)
+xy-complier: $(OBJS)
 	g++ -o $@ $(OBJS) $(LIBS) $(LDFLAGS)
 
-test: parser example.txt
-	cat example.xy | ./parser
+test: xy-complier example.xy
+	cat example.xy | ./xy-complier
