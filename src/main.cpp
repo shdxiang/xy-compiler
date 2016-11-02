@@ -7,8 +7,6 @@ using namespace std;
 extern int yyparse();
 extern NBlock* programBlock;
 
-void createCoreFunctions(CodeGenContext& context);
-
 int main(int argc, char **argv)
 {
 	yyparse();
@@ -18,7 +16,6 @@ int main(int argc, char **argv)
 	InitializeNativeTargetAsmPrinter();
 	InitializeNativeTargetAsmParser();
 	CodeGenContext context;
-//	createCoreFunctions(context);
 	context.generateCode(*programBlock);
 	context.runCode();
 	

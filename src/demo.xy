@@ -1,7 +1,7 @@
-extern void printi(int val)
+extern printi(val)
 
-int do_math(int a) {
-  int x = a * 5
+do_math(a) {
+  x = a * 5
   return x + 3
 }
 
