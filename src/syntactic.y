@@ -29,7 +29,7 @@
 %token <token> TCEQ TCNE TEQUAL
 %token <token> TLPAREN TRPAREN TLBRACE TRBRACE TCOMMA
 %token <token> TPLUS TMINUS TMUL TDIV
-%token <token> TRETURN TEXTERN
+%token <token> TRETURN TEXTERN TIF TELSE
 
 /* Define the type of node our nonterminal symbols represent.
    The types refer to the %union declaration above. Ex: when
@@ -41,7 +41,7 @@
 %type <varvec> func_decl_args
 %type <exprvec> call_args
 %type <block> program stmts block
-%type <stmt> stmt func_decl extern_decl
+%type <stmt> stmt func_decl extern_decl condition_stmt
 %type <token> comparison
 
 /* Operator precedence for mathematical operators */
@@ -66,7 +66,13 @@ stmt:
 | extern_decl
 | expr { $$ = new NExpressionStatement(*$1); }
 | TRETURN expr { $$ = new NReturnStatement(*$2); }
+| condition_stmt
 ;
+
+condition_stmt:
+  TIF TLPAREN expr TRPAREN block { $$ = new NConditionStatement(*$3, *$5); }
+| TIF TLPAREN expr TRPAREN block TELSE block  { $$ = new NConditionStatement(*$3, *$5, *$7); }
+; 
 
 block:
   TLBRACE stmts TRBRACE { $$ = $2; }

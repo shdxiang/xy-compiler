@@ -61,7 +61,7 @@ class NAssignment : public NExpression {
 public:
 	NIdentifier& lhs;
 	NExpression& rhs;
-	NAssignment(NIdentifier& lhs, NExpression& rhs) : 
+	NAssignment(NIdentifier& lhs, NExpression& rhs) :
 		lhs(lhs), rhs(rhs) { }
 	virtual llvm::Value* codeGen(CodeGenContext& context);
 };
@@ -76,7 +76,7 @@ public:
 class NExpressionStatement : public NStatement {
 public:
 	NExpression& expression;
-	NExpressionStatement(NExpression& expression) : 
+	NExpressionStatement(NExpression& expression) :
 		expression(expression) { }
 	virtual llvm::Value* codeGen(CodeGenContext& context);
 };
@@ -84,7 +84,7 @@ public:
 class NReturnStatement : public NStatement {
 public:
 	NExpression& expression;
-	NReturnStatement(NExpression& expression) : 
+	NReturnStatement(NExpression& expression) :
 		expression(expression) { }
 	virtual llvm::Value* codeGen(CodeGenContext& context);
 };
@@ -108,4 +108,20 @@ public:
 			const VariableList& arguments, NBlock& block) :
 		id(id), arguments(arguments), block(block) { }
 	virtual llvm::Value* codeGen(CodeGenContext& context);
+};
+
+class NConditionStatement : public NStatement {
+public:
+	NExpression &expression;
+	NBlock blockIfTrue;
+	NBlock blockIfFalse;
+	bool hasFalseBranch;
+
+	NConditionStatement(NExpression &expression, NBlock &blockIfTrue, NBlock &blockIfFalse) :
+			expression(expression), blockIfTrue(blockIfTrue), blockIfFalse(blockIfFalse), hasFalseBranch(true) {}
+
+	NConditionStatement(NExpression &expression, NBlock &blockIfTrue) :
+			expression(expression), blockIfTrue(blockIfTrue), hasFalseBranch(false) {}
+
+	virtual llvm::Value *codeGen(CodeGenContext &context);
 };
