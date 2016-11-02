@@ -105,7 +105,7 @@ expr : ident TEQUAL expr { $$ = new NAssignment(*$<ident>1, *$3); }
      | TLPAREN expr TRPAREN { $$ = $2; }
      ;
     
-call_args : /*blank*/  { $$ = new ExpressionList(); }
+call_args : /*blank*/ { $$ = new ExpressionList(); }
           | expr { $$ = new ExpressionList(); $$->push_back($1); }
           | call_args TCOMMA expr  { $1->push_back($3); }
           ;
