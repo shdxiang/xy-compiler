@@ -52,58 +52,71 @@
 
 %%
 
-program : stmts { programBlock = $1; }
+program:
+  stmts { programBlock = $1; }
         ;
         
-stmts : stmt { $$ = new NBlock(); $$->statements.push_back($<stmt>1); }
-      | stmts stmt { $1->statements.push_back($<stmt>2); }
-      ;
+stmts:
+  stmt { $$ = new NBlock(); $$->statements.push_back($1); }
+| stmts stmt { $1->statements.push_back($2); }
+;
 
-stmt : func_decl | extern_decl
-     | expr { $$ = new NExpressionStatement(*$1); }
-     | TRETURN expr { $$ = new NReturnStatement(*$2); }
-     ;
+stmt:
+  func_decl
+| extern_decl
+| expr { $$ = new NExpressionStatement(*$1); }
+| TRETURN expr { $$ = new NReturnStatement(*$2); }
+;
 
-block : TLBRACE stmts TRBRACE { $$ = $2; }
-      | TLBRACE TRBRACE { $$ = new NBlock(); }
-      ;
+block:
+  TLBRACE stmts TRBRACE { $$ = $2; }
+| TLBRACE TRBRACE { $$ = new NBlock(); }
+;
 
-extern_decl : TEXTERN ident TLPAREN func_decl_args TRPAREN
-              { $$ = new NExternDeclaration(*$2, *$4); delete $4; }
-            ;
+extern_decl:
+  TEXTERN ident TLPAREN func_decl_args TRPAREN { $$ = new NExternDeclaration(*$2, *$4); delete $4; }
+;
 
-func_decl : ident TLPAREN func_decl_args TRPAREN block
-            { $$ = new NFunctionDeclaration(*$1, *$3, *$5); delete $3; }
-          ;
+func_decl:
+  ident TLPAREN func_decl_args TRPAREN block { $$ = new NFunctionDeclaration(*$1, *$3, *$5); delete $3; }
+;
     
-func_decl_args : /*blank*/  { $$ = new VariableList(); }
-          | ident { $$ = new VariableList(); $$->push_back($<ident>1); }
-          | func_decl_args TCOMMA ident { $1->push_back($<ident>3); }
-          ;
+func_decl_args:
+  { $$ = new VariableList(); }
+| ident { $$ = new VariableList(); $$->push_back($1); }
+| func_decl_args TCOMMA ident { $1->push_back($3); }
+;
 
-ident : TIDENTIFIER { $$ = new NIdentifier(*$1); delete $1; }
-      ;
+ident:
+  TIDENTIFIER { $$ = new NIdentifier(*$1); delete $1; }
+;
 
-numeric : TINTEGER { $$ = new NInteger(atol($1->c_str())); delete $1; }
-        ;
+numeric:
+  TINTEGER { $$ = new NInteger(atol($1->c_str())); delete $1; }
+;
+
+expr:
+  ident TEQUAL expr { $$ = new NAssignment(*$1, *$3); }
+| ident TLPAREN call_args TRPAREN { $$ = new NMethodCall(*$1, *$3); delete $3; }
+| ident { $$ = $1; }
+| numeric
+| expr TMUL expr { $$ = new NBinaryOperator(*$1, $2, *$3); }
+| expr TDIV expr { $$ = new NBinaryOperator(*$1, $2, *$3); }
+| expr TPLUS expr { $$ = new NBinaryOperator(*$1, $2, *$3); }
+| expr TMINUS expr { $$ = new NBinaryOperator(*$1, $2, *$3); }
+| expr comparison expr { $$ = new NBinaryOperator(*$1, $2, *$3); }
+| TLPAREN expr TRPAREN { $$ = $2; }
+;
     
-expr : ident TEQUAL expr { $$ = new NAssignment(*$<ident>1, *$3); }
-     | ident TLPAREN call_args TRPAREN { $$ = new NMethodCall(*$1, *$3); delete $3; }
-     | ident { $<ident>$ = $1; }
-     | numeric
-     | expr TMUL expr { $$ = new NBinaryOperator(*$1, $2, *$3); }
-     | expr TDIV expr { $$ = new NBinaryOperator(*$1, $2, *$3); }
-     | expr TPLUS expr { $$ = new NBinaryOperator(*$1, $2, *$3); }
-     | expr TMINUS expr { $$ = new NBinaryOperator(*$1, $2, *$3); }
-     | expr comparison expr { $$ = new NBinaryOperator(*$1, $2, *$3); }
-     | TLPAREN expr TRPAREN { $$ = $2; }
-     ;
-    
-call_args : /*blank*/ { $$ = new ExpressionList(); }
-          | expr { $$ = new ExpressionList(); $$->push_back($1); }
-          | call_args TCOMMA expr { $1->push_back($3); }
-          ;
+call_args:
+  { $$ = new ExpressionList(); }
+| expr { $$ = new ExpressionList(); $$->push_back($1); }
+| call_args TCOMMA expr { $1->push_back($3); }
+;
 
-comparison : TCEQ | TCNE;
+comparison:
+  TCEQ
+| TCNE
+;
 
 %%

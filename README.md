@@ -16,7 +16,7 @@
 
 - 支持函数调用
 
-- 支持 extern（主要是为了调用 printf 打印计算jieg）
+- 支持 extern（主要是为了调用 printf 打印计算结果）
 
 以下是我们要支持的源码实例：
 
@@ -106,6 +106,7 @@ sudo apt-get install llvm-3.8*
 
 %%
 ```
+
 
 
 
