@@ -1,6 +1,6 @@
-#include "node.h"
-#include "codegen.h"
-#include "parser.hpp"
+#include "ast.h"
+#include "gen.h"
+#include "syntactic.hpp"
 
 using namespace std;
 

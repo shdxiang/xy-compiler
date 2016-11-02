@@ -1,6 +1,6 @@
 #include <iostream>
-#include "codegen.h"
-#include "node.h"
+#include "gen.h"
+#include "ast.h"
 
 using namespace std;
 

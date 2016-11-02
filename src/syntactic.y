@@ -1,5 +1,5 @@
 %{
-    #include "node.h"
+    #include "ast.h"
     #include <cstdio>
     #include <cstdlib>
     NBlock *programBlock; /* the top level root node of our final AST */
