@@ -37,7 +37,7 @@
    calling an (NIdentifier*). It makes the compiler happy.
  */
 %type <ident> ident
-%type <expr> numeric expr 
+%type <expr> numeric expr
 %type <varvec> func_decl_args
 %type <exprvec> call_args
 %type <block> program stmts block
@@ -55,7 +55,7 @@
 program:
   stmts { programBlock = $1; }
         ;
-        
+
 stmts:
   stmt { $$ = new NBlock(); $$->statements.push_back($1); }
 | stmts stmt { $1->statements.push_back($2); }
@@ -80,7 +80,7 @@ extern_decl:
 func_decl:
   ident TLPAREN func_decl_args TRPAREN block { $$ = new NFunctionDeclaration(*$1, *$3, *$5); delete $3; }
 ;
-    
+
 func_decl_args:
   { $$ = new VariableList(); }
 | ident { $$ = new VariableList(); $$->push_back($1); }
@@ -107,7 +107,7 @@ expr:
 | expr comparison expr { $$ = new NBinaryOperator(*$1, $2, *$3); }
 | TLPAREN expr TRPAREN { $$ = $2; }
 ;
-    
+
 call_args:
   { $$ = new ExpressionList(); }
 | expr { $$ = new ExpressionList(); $$->push_back($1); }
