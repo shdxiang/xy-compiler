@@ -77,33 +77,23 @@ Value* NMethodCall::codeGen(CodeGenContext& context)
 	return call;
 }
 
-Value *NBinaryOperator::codeGen(CodeGenContext &context) {
+Value* NBinaryOperator::codeGen(CodeGenContext& context)
+{
 	std::cout << "Creating binary operation " << op << endl;
 	Instruction::BinaryOps instr;
 	switch (op) {
-		case TPLUS:
-			return BinaryOperator::Create(Instruction::Add, lhs.codeGen(context),
-										  rhs.codeGen(context), "", context.currentBlock());
-		case TMINUS:
-			return BinaryOperator::Create(Instruction::Sub, lhs.codeGen(context),
-										  rhs.codeGen(context), "", context.currentBlock());
-		case TMUL:
-			return BinaryOperator::Create(Instruction::Mul, lhs.codeGen(context),
-										  rhs.codeGen(context), "", context.currentBlock());
-		case TDIV:
-			return BinaryOperator::Create(Instruction::SDiv, lhs.codeGen(context),
-										  rhs.codeGen(context), "", context.currentBlock());
-		case TCEQ:
-			return CmpInst::Create(Instruction::ICmp, CmpInst::ICMP_EQ,
-								   lhs.codeGen(context), rhs.codeGen(context), "", context.currentBlock());
-		case TCNE:
-			return CmpInst::Create(Instruction::ICmp, CmpInst::ICMP_NE,
-								   lhs.codeGen(context), rhs.codeGen(context), "", context.currentBlock());
-		default:
-			return NULL;
+		case TPLUS: 	instr = Instruction::Add; goto math;
+		case TMINUS: 	instr = Instruction::Sub; goto math;
+		case TMUL: 		instr = Instruction::Mul; goto math;
+		case TDIV: 		instr = Instruction::SDiv; goto math;
+
+		/* TODO comparison */
 	}
 
 	return NULL;
+math:
+	return BinaryOperator::Create(instr, lhs.codeGen(context), 
+		rhs.codeGen(context), "", context.currentBlock());
 }
 
 Value* NAssignment::codeGen(CodeGenContext& context)
@@ -186,30 +176,4 @@ Value* NFunctionDeclaration::codeGen(CodeGenContext& context)
 	context.popBlock();
 	std::cout << "Creating function: " << id.name << endl;
 	return function;
-}
-
-Value *NConditionStatement::codeGen(CodeGenContext &context) {
-	std::cout << "<<<<<<" << endl;
-    IRBuilder<> builder(context.currentBlock());
-    Value *value = expression.codeGen(context);
-    BasicBlock *bTrue = BasicBlock::Create(getGlobalContext(), "", context.currentBlock()->getParent());
-    BasicBlock *bFalse = NULL;
-    if (hasFalseBranch) {
-        bFalse = BasicBlock::Create(getGlobalContext(), "", context.currentBlock()->getParent());
-    }
-
-    builder.CreateCondBr(value, bTrue, bFalse);
-
-    context.pushBlock(bTrue);
-    blockIfTrue.codeGen(context);
-    context.popBlock();
-
-    if (hasFalseBranch) {
-        context.pushBlock(bFalse);
-        blockIfFalse.codeGen(context);
-        context.popBlock();
-    }
-	std::cout << ">>>>>>" << endl;
-
-    return NULL;
 }

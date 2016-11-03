@@ -6,17 +6,3 @@ do_math(a) {
 }
 
 printi(do_math(4))
-
-fibonacci(num) {
-    bb = 3
-    if (2 == 2) {
-        a = 3
-        cc = 2
-    } else {
-        a = 4
-    }
-    return bb
-}
-
-printi(fibonacci(0))
-
