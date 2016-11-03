@@ -16,17 +16,20 @@
 
 - 支持 extern（主要是为了调用 printf 打印计算结果）
 
-以下是我们要支持的源码实例：
+以下是我们要支持的源码实例 [demo.xy](https://github.com/shdxiang/xy-compiler/blob/master/src/demo.xy)：
 
 ```
 extern printi(val)
 
-foo(a) {
-  x = a * 2
-  return x + 6
+sum(a, b) {
+  return a + b
 }
 
-printi(foo(5))
+mult(a, b) {
+  return a * b
+}
+
+printi(mult(4, 5) - sum(4, 5))
 
 ```
 
@@ -54,7 +57,7 @@ printi(foo(5))
 
 在 ubuntu 上可以通过以下命令安装这些工具：
 
-```
+```bash
 sudo apt-get install flex
 sudo apt-get install bison
 sudo apt-get install llvm-3.8*
@@ -175,7 +178,7 @@ func_decl:
 
 可以看到后面大括号中间的也是 `动作` 代码，上例的动作是在 `抽象语法树` 中生成一个函数的节点。其实这部分的其他规则也是生成相应类型的节点到语法树中去。像 `NFunctionDeclaration` 这是一个我们自己定义的节点类，我们在 [ast.h](https://github.com/shdxiang/xy-compiler/blob/master/src/ast.h) 中定义了我们所要用到的节点，同样的，我们摘取一段代码如下：
 
-```
+```c++
 ...
 
 class NFunctionDeclaration : public NStatement {
@@ -193,7 +196,132 @@ public:
 
 ```
 
-可以看到，它有 `标识符（id）`，`参数列表（arguments）`，`函数体（block）` 这些成员，在语法分析阶段会设置好这些成员的内容供后面的 `代码生成` 阶段使用。还可以看到有一个 `codeGen()` 虚函数，你可能猜到了，后面就是通过调用它来生成相应的目标代码。
+可以看到，它有 `标识符（id）`，`参数列表（arguments）`，`函数体（block）` 这些成员，在语法分析阶段会设置好这些成员的内容供后面的 `目标码生成` 阶段使用。还可以看到有一个 `codeGen()` 虚函数，你可能猜到了，后面就是通过调用它来生成相应的目标代码。
+
+我们可以通过以下命令调用 Bison 生成 `语法分析器` 的源码文件，这里我们使用 `-d` 使头文件和源文件分开，因为前面 `词法分析器` 的源码使用了这里定义的一些宏，所以需要使用这个头文件，这里将会生成 `syntactic.cpp` 和 `syntactic.hpp`：
+
+```bash
+bison -d -o syntactic.cpp syntactic.y
+```
+
+## 目标码生成
+
+这是编译的最后一步，我们就要成功了，这一步的主角是前面提到 LLVM，LLVM 是一个构建编译器的框架系统，我们使用他遍历 `语法分析` 阶段生成的 `抽象语法树`，然后为每个节点生成相应的 `目标码`。当然，无法避免的是我们需要使用 LLVM 提供的函数来编写生成目标码的源码，就是实现前面提到的虚函数 `codeGen()`,是不是有点拗口？不过确实是这样。我们在 [gen.cpp](https://github.com/shdxiang/xy-compiler/blob/master/src/gen.cpp) 中编写了不同节点的生成代码，我们摘取一段看一下：
+
+```c++
+...
+
+Value* NIdentifier::codeGen(CodeGenContext& context)
+{
+	std::cout << "Creating identifier reference: " << name << endl;
+	if (context.locals().find(name) == context.locals().end()) {
+		std::cout << "undeclared variable " << name << endl;
+        std::cout << "Creating variable declaration " << name << endl;
+        AllocaInst *alloc = new AllocaInst(Type::getInt64Ty(getGlobalContext()), name.c_str(), context.currentBlock());
+        context.locals()[name] = alloc;
+	}
+	return new LoadInst(context.locals()[name], "", false, context.currentBlock());
+}
+
+...
+
+```
+
+看起来有点复杂，简单来说就是通过 LLVM 提供的接口来生成 `目标码`，需要了解更多的话可以去 LLVM 的官网学习一下。
+
+至此，我们所有的工作基本都做完了。简单回顾一下：我们先通过 Flex 生成 `词法分析器` 源码文件 `lexical.cpp`，然后通过 Bison 生成 `语法分析器` 源码文件 `syntactic.cpp` 和头文件 `syntactic.hpp`，我们自己编写了 `抽象语法树` 节点定义文件 `ast.h` 和 `目标码` 生成文件 [gen.cpp](https://github.com/shdxiang/xy-compiler/blob/master/src/gen.cpp)，还有一个 [gen.h](https://github.com/shdxiang/xy-compiler/blob/master/src/gen.h) 包含一点 LLVM 环境相关的代码，为了输出我们程序的结果，还在 [printi.cpp](https://github.com/shdxiang/xy-compiler/blob/master/src/printi.cpp) 里简单的通过调用 C 语言库函数实现了输出一个整数。
+
+对了，我们还需要一个 `main` 函数作为编译器的入口函数，它在 [main.cpp](https://github.com/shdxiang/xy-compiler/blob/master/src/main.cpp) 里：
+
+```c++
+
+...
+
+int main(int argc, char **argv) {
+    yyparse();
+    InitializeNativeTarget();
+    InitializeNativeTargetAsmPrinter();
+    InitializeNativeTargetAsmParser();
+    CodeGenContext context;
+    context.generateCode(*programBlock);
+    context.runCode();
+
+    return 0;
+}
+
+```
+
+我们可以看到其调用了 `yyparse()` 做 `语法分析`，（`yyparse()` 内部会先调用 `yylex()` 做 `词法分析`）；然后是一系列的 LLVM 初始化代码，`context.generateCode(*programBlock)` 是开始生成 `目标码`；最后是 `context.runCode()` 来运行代码，这里使用了 LLVM 的 `JIT（Just In Time）` 来直接运行代码，没有链接的过程。
+
+现在我们可以用这些文件生成我们的编译器了，需要说明一下，因为 `词法分析器` 的源码使用了一些 `语法分析器` 头文件中的宏，所以正确的生成顺序是这样的：
+
+```bash
+bison -d -o syntactic.cpp syntactic.y
+flex -o lexical.cpp lexical.l syntactic.hpp
+g++ -c `llvm-config --cppflags` -std=c++11 syntactic.cpp gen.cpp lexical.cpp printi.cpp main.cpp
+g++ -o xy-complier syntactic.o gen.o main.o lexical.o printi.o `llvm-config --libs` `llvm-config --ldflags` -lpthread -ldl -lz -lncurses -rdynamic
+```
+
+如果你下载了 [GitHub](https://github.com/shdxiang/xy-compiler) 的源码，那么直接：
+```bash
+cd src
+make
+```
+
+就可以完成以上过程了，正常会生成一个二进制文件 `xy-complier`，它就是我们的编译器了。
+
+## 编译测试
+
+我们使用之前提到实例 [demo.xy](https://github.com/shdxiang/xy-compiler/blob/master/src/demo.xy) 来测试，将其内容发给 `xy-complier` 的标准输入就可以看到运行结果了：
+
+```bash
+cat demo.xy | ./xy-complier
+```
+
+也可以直接通过
+
+```bash
+make test
+```
+
+来测试，输出如下：
+
+```bash
+
+...
+
+define internal i64 @mult(i64 %a1, i64 %b2) {
+entry:
+  %a = alloca i64
+  %0 = load i64, i64* %a
+  store i64 %a1, i64* %a
+  %b = alloca i64
+  %1 = load i64, i64* %b
+  store i64 %b2, i64* %b
+  %2 = load i64, i64* %b
+  %3 = load i64, i64* %a
+  %4 = mul i64 %3, %2
+  ret i64 %4
+}
+Running code:
+11
+Exiting...
+```
+
+可以看到最后正确输出了期望的结果，至此我们简单的编译器就完成了。
+
+## 参考：
+
+[Writing an Interpreter with Lex, Yacc, and Memphis](http://memphis.compilertools.net/interpreter.html)
+[Lex & Yacc Tutorial](http://epaperpress.com/lexandyacc/)
+[Writing Your Own Toy Compiler Using Flex, Bison and LLVM](http://gnuu.org/2009/09/18/writing-your-own-toy-compiler)
+http://llvm.org/docs/tutorial/index.html#kaleidoscope-implementing-a-language-with-llvmhttp://llvm.org/docs/tutorial/index.html#kaleidoscope-implementing-a-language-with-llvm)
+
+
+
+
+
+
 
 
 

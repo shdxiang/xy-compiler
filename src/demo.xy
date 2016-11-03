@@ -1,8 +1,11 @@
 extern printi(val)
 
-foo(a) {
-  x = a * 2
-  return x + 6
+sum(a, b) {
+  return a + b
 }
 
-printi(foo(5))
+mult(a, b) {
+  return a * b
+}
+
+printi(mult(4, 5) - sum(4, 5))

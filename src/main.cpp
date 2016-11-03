@@ -5,20 +5,20 @@
 using namespace std;
 
 extern int yyparse();
-extern NBlock* programBlock;
 
-int main(int argc, char **argv)
-{
-	yyparse();
-	cout << programBlock << endl;
-    // see http://comments.gmane.org/gmane.comp.compilers.llvm.devel/33877
-	InitializeNativeTarget();
-	InitializeNativeTargetAsmPrinter();
-	InitializeNativeTargetAsmParser();
-	CodeGenContext context;
-	context.generateCode(*programBlock);
-	context.runCode();
-	
-	return 0;
+extern NBlock *programBlock;
+
+int main(int argc, char **argv) {
+    yyparse();
+    cout << programBlock << endl;
+    InitializeNativeTarget();
+    InitializeNativeTargetAsmPrinter();
+    InitializeNativeTargetAsmParser();
+    CodeGenContext context;
+    context.generateCode(*programBlock);
+    context.runCode();
+
+    std::cout << "Exiting...\n";
+
+    return 0;
 }
-
