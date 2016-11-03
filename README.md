@@ -14,7 +14,7 @@
 
 - 支持函数调用
 
-- 支持 extern（主要是为了调用 printf 打印计算结果）
+- 支持 `extern`（为了调用 `printf` 打印计算结果）
 
 以下是我们要支持的源码实例 [demo.xy](https://github.com/shdxiang/xy-compiler/blob/master/src/demo.xy)：
 
@@ -67,7 +67,7 @@ sudo apt-get install llvm-3.8*
 
 ## 词法分析器
 
-前面提到 `词法分析器` 要将源程序分解成 `单词`，我们的语法格式很简单，只包括：标识符，数字，数学运算符，括号和大括号等，我们编写给 Flex 使用的规则文件 [lexical.l](https://github.com/shdxiang/xy-compiler/blob/master/src/lexical.l) 如下：
+前面提到 `词法分析器` 要将源程序分解成 `单词`，我们的语法格式很简单，只包括：标识符，数字，数学运算符，括号和大括号等，我们将通过 Flex 来生成 `词法分析器` 的源码，给 Flex 使用的规则文件 [lexical.l](https://github.com/shdxiang/xy-compiler/blob/master/src/lexical.l) 如下：
 
 ```
 %{
@@ -111,7 +111,7 @@ sudo apt-get install llvm-3.8*
 
 ```
 
-我们来解释一下，这个文件被 2 个 `%%` 分成 3 部分，第 1 部分用 `%{` 与 `%}` 包括的是一些 C++ 代码，会被原样复制到 Flex 生成的源码文件中，还可以在指定一些选项，如我们使用了 `%option noyywrap`，也可以在这定义宏供后面使用；第 2 部分用来定义构成单词的规则，可以看到每条规都是一个 `正则表达式` 和 `动作`，很直白，就是 `词法分析器` 发现了匹配的 `单词` 后执行相应的动作代码，大部分他只要返回 `单词` 给调用者就可以了；第 3 部分可以定义一些函数，也会原样复制到生成的源码中去，这里我们留空没有使用。
+我们来解释一下，这个文件被 2 个 `%%` 分成 3 部分，第 1 部分用 `%{` 与 `%}` 包括的是一些 C++ 代码，会被原样复制到 Flex 生成的源码文件中，还可以在指定一些选项，如我们使用了 `%option noyywrap`，也可以在这定义宏供后面使用；第 2 部分用来定义构成单词的规则，可以看到每条规都是一个 `正则表达式` 和 `动作`，很直白，就是 `词法分析器` 发现了匹配的 `单词` 后执行相应的 `动作` 代码，大部分只要返回 `单词` 给调用者就可以了；第 3 部分可以定义一些函数，也会原样复制到生成的源码中去，这里我们留空没有使用。
 
 现在我们可以通过调用 Flex 生成 `词法分析器` 的源码：
 
@@ -176,7 +176,7 @@ func_decl:
 ;
 ```
 
-可以看到后面大括号中间的也是 `动作` 代码，上例的动作是在 `抽象语法树` 中生成一个函数的节点。其实这部分的其他规则也是生成相应类型的节点到语法树中去。像 `NFunctionDeclaration` 这是一个我们自己定义的节点类，我们在 [ast.h](https://github.com/shdxiang/xy-compiler/blob/master/src/ast.h) 中定义了我们所要用到的节点，同样的，我们摘取一段代码如下：
+可以看到后面大括号中间的也是 `动作` 代码，上例的动作是在 `抽象语法树` 中生成一个函数的节点，其实这部分的其他规则也是生成相应类型的节点到语法树中。像 `NFunctionDeclaration` 这是一个我们自己定义的节点类，我们在 [ast.h](https://github.com/shdxiang/xy-compiler/blob/master/src/ast.h) 中定义了我们所要用到的节点，同样的，我们摘取一段代码如下：
 
 ```c++
 ...
@@ -206,7 +206,7 @@ bison -d -o syntactic.cpp syntactic.y
 
 ## 目标码生成
 
-这是编译的最后一步，我们就要成功了，这一步的主角是前面提到 LLVM，LLVM 是一个构建编译器的框架系统，我们使用他遍历 `语法分析` 阶段生成的 `抽象语法树`，然后为每个节点生成相应的 `目标码`。当然，无法避免的是我们需要使用 LLVM 提供的函数来编写生成目标码的源码，就是实现前面提到的虚函数 `codeGen()`,是不是有点拗口？不过确实是这样。我们在 [gen.cpp](https://github.com/shdxiang/xy-compiler/blob/master/src/gen.cpp) 中编写了不同节点的生成代码，我们摘取一段看一下：
+这是编译的最后一步，我们就要成功了，这一步的主角是前面提到 LLVM，LLVM 是一个构建编译器的框架系统，我们使用他遍历 `语法分析` 阶段生成的 `抽象语法树`，然后为每个节点生成相应的 `目标码`。当然，无法避免的是我们需要使用 LLVM 提供的函数来编写生成目标码的源码，就是实现前面提到的虚函数 `codeGen()`，是不是有点拗口？不过确实是这样。我们在 [gen.cpp](https://github.com/shdxiang/xy-compiler/blob/master/src/gen.cpp) 中编写了不同节点的生成代码，我们摘取一段看一下：
 
 ```c++
 ...
@@ -229,7 +229,7 @@ Value* NIdentifier::codeGen(CodeGenContext& context)
 
 看起来有点复杂，简单来说就是通过 LLVM 提供的接口来生成 `目标码`，需要了解更多的话可以去 LLVM 的官网学习一下。
 
-至此，我们所有的工作基本都做完了。简单回顾一下：我们先通过 Flex 生成 `词法分析器` 源码文件 `lexical.cpp`，然后通过 Bison 生成 `语法分析器` 源码文件 `syntactic.cpp` 和头文件 `syntactic.hpp`，我们自己编写了 `抽象语法树` 节点定义文件 `ast.h` 和 `目标码` 生成文件 [gen.cpp](https://github.com/shdxiang/xy-compiler/blob/master/src/gen.cpp)，还有一个 [gen.h](https://github.com/shdxiang/xy-compiler/blob/master/src/gen.h) 包含一点 LLVM 环境相关的代码，为了输出我们程序的结果，还在 [printi.cpp](https://github.com/shdxiang/xy-compiler/blob/master/src/printi.cpp) 里简单的通过调用 C 语言库函数实现了输出一个整数。
+至此，我们所有的工作基本都做完了。简单回顾一下：我们先通过 Flex 生成 `词法分析器` 源码文件 `lexical.cpp`，然后通过 Bison 生成 `语法分析器` 源码文件 `syntactic.cpp` 和头文件 `syntactic.hpp`，我们自己编写了 `抽象语法树` 节点定义文件 [ast.h](https://github.com/shdxiang/xy-compiler/blob/master/src/gen.h) 和 `目标码` 生成文件 [ast.cpp](https://github.com/shdxiang/xy-compiler/blob/master/src/gen.cpp)，还有一个 [gen.h](https://github.com/shdxiang/xy-compiler/blob/master/src/gen.h) 包含一点 LLVM 环境相关的代码，为了输出我们程序的结果，还在 [printi.cpp](https://github.com/shdxiang/xy-compiler/blob/master/src/printi.cpp) 里简单的通过调用 C 语言库函数实现了输出一个整数。
 
 对了，我们还需要一个 `main` 函数作为编译器的入口函数，它在 [main.cpp](https://github.com/shdxiang/xy-compiler/blob/master/src/main.cpp) 里：
 
@@ -272,7 +272,7 @@ make
 
 ## 编译测试
 
-我们使用之前提到实例 [demo.xy](https://github.com/shdxiang/xy-compiler/blob/master/src/demo.xy) 来测试，将其内容发给 `xy-complier` 的标准输入就可以看到运行结果了：
+我们使用之前提到实例 [demo.xy](https://github.com/shdxiang/xy-compiler/blob/master/src/demo.xy) 来测试，将其内容传给 `xy-complier` 的标准输入就可以看到运行结果了：
 
 ```bash
 cat demo.xy | ./xy-complier
@@ -312,10 +312,10 @@ Exiting...
 
 ## 参考：
 
-[Writing an Interpreter with Lex, Yacc, and Memphis](http://memphis.compilertools.net/interpreter.html)
-[Lex & Yacc Tutorial](http://epaperpress.com/lexandyacc/)
-[Writing Your Own Toy Compiler Using Flex, Bison and LLVM](http://gnuu.org/2009/09/18/writing-your-own-toy-compiler)
-http://llvm.org/docs/tutorial/index.html#kaleidoscope-implementing-a-language-with-llvmhttp://llvm.org/docs/tutorial/index.html#kaleidoscope-implementing-a-language-with-llvm)
+- [Writing an Interpreter with Lex, Yacc, and Memphis](http://memphis.compilertools.net/interpreter.html)
+- [Lex & Yacc Tutorial](http://epaperpress.com/lexandyacc/)
+- [Writing Your Own Toy Compiler Using Flex, Bison and LLVM](http://gnuu.org/2009/09/18/writing-your-own-toy-compiler)
+- [Kaleidoscope: Implementing a Language with LLVM](http://llvm.org/docs/tutorial/index.html#kaleidoscope-implementing-a-language-with-llvmhttp://llvm.org/docs/tutorial/index.html#kaleidoscope-implementing-a-language-with-llvm)
 
 
 
