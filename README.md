@@ -118,11 +118,11 @@ flex -o lexical.cpp lexical.l
 
 生成的　lexical.cpp　里会有一个 `yylex()` 函数供　`语法分析器`　调用；你可能发现了，有些宏和变量并没有被定义（如 TEXTERN，yylval，yytext 等），其实有些是 Flex 会自动定义的内置变量（如 yytext），有些是后面 `语法分析器` 生成工具里定义的变量（如 yylval），我们后面会看到。
 
-##　语法分析器
+## 语法分析器
 
 `语法分析器` 的作用是构建 `抽象语法树`，通俗的说 `抽象语法树` 就是将源码用树状结构来表示，每个节点都代表源码中的一种结构；对于我们要实现的语法，其语法树是很简单的，如下：
 
-![ast.mm.svg](https://github.com/shdxiang/xy-compiler/blob/master/doc/ast.mm.svg)
+![ast.mm.png](https://github.com/shdxiang/xy-compiler/blob/master/doc/ast.mm.png)
 
 现在我们使用 Bison 生成 `语法分析器` 代码，同样 Bison 需要一个规则文件，我们的规则文件 [syntactic.y](https://github.com/shdxiang/xy-compiler/blob/master/src/syntactic.y) 如下，限于篇幅，省略了某些部分，可以通过链接查看完整内容：
 ```
