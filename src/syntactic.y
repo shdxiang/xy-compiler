@@ -70,7 +70,8 @@ stmt:
 ;
 
 condition_stmt:
-  TIF TLPAREN expr TRPAREN block TELSE block  { $$ = new NConditionStatement(*$3, *$5, *$7); }
+  TIF TLPAREN expr TRPAREN block { $$ = new NConditionStatement(*$3, *$5); }
+| TIF TLPAREN expr TRPAREN block TELSE block  { $$ = new NConditionStatement(*$3, *$5, *$7); }
 ; 
 
 block:

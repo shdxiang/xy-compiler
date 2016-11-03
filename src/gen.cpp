@@ -189,38 +189,27 @@ Value* NFunctionDeclaration::codeGen(CodeGenContext& context)
 }
 
 Value *NConditionStatement::codeGen(CodeGenContext &context) {
+	std::cout << "<<<<<<" << endl;
     IRBuilder<> builder(context.currentBlock());
-    Function *TheFunction = builder.GetInsertBlock()->getParent();
     Value *value = expression.codeGen(context);
-    BasicBlock *bTrue = BasicBlock::Create(getGlobalContext(), "if", TheFunction);
-    BasicBlock *bFalse = BasicBlock::Create(getGlobalContext(), "else");
-    BasicBlock *bMerge = BasicBlock::Create(getGlobalContext(), "merge");
+    BasicBlock *bTrue = BasicBlock::Create(getGlobalContext(), "", context.currentBlock()->getParent());
+    BasicBlock *bFalse = NULL;
+    if (hasFalseBranch) {
+        bFalse = BasicBlock::Create(getGlobalContext(), "", context.currentBlock()->getParent());
+    }
 
     builder.CreateCondBr(value, bTrue, bFalse);
 
-    builder.SetInsertPoint(bTrue);
-    auto valueIfTrue = blockIfTrue.codeGen(context);
-    builder.CreateBr(bMerge);
-    bTrue = builder.GetInsertBlock();
+    context.pushBlock(bTrue);
+    blockIfTrue.codeGen(context);
+    context.popBlock();
 
-    TheFunction->getBasicBlockList().push_back(bFalse);
-    builder.SetInsertPoint(bFalse);
-    auto valueIfFalse = blockIfFalse.codeGen(context);
-    builder.CreateBr(bMerge);
-    bFalse = builder.GetInsertBlock();
+    if (hasFalseBranch) {
+        context.pushBlock(bFalse);
+        blockIfFalse.codeGen(context);
+        context.popBlock();
+    }
+	std::cout << ">>>>>>" << endl;
 
-    std::cout << "======valueIfTrue: " << valueIfTrue->getType() << endl;
-    std::cout << "======valueIfFalse: " << valueIfFalse->getType() << endl;
-
-    TheFunction->getBasicBlockList().push_back(bMerge);
-    builder.SetInsertPoint(bMerge);
-    auto phi = builder.CreatePHI(valueIfTrue->getType(), 2, "phi");
-    phi->addIncoming(valueIfTrue, bTrue);
-    phi->addIncoming(valueIfFalse, bFalse);
-//    blockIfTrue.codeGen(context);
-//    IRBuilder<> builderTrue(bTrue);
-//    builderTrue.CreateBr(bFalse);
-//    context.popBlock();
-
-    return phi;
+    return NULL;
 }
