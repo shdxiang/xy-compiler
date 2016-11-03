@@ -115,13 +115,9 @@ public:
 	NExpression &expression;
 	NBlock blockIfTrue;
 	NBlock blockIfFalse;
-	bool hasFalseBranch;
 
 	NConditionStatement(NExpression &expression, NBlock &blockIfTrue, NBlock &blockIfFalse) :
-			expression(expression), blockIfTrue(blockIfTrue), blockIfFalse(blockIfFalse), hasFalseBranch(true) {}
-
-	NConditionStatement(NExpression &expression, NBlock &blockIfTrue) :
-			expression(expression), blockIfTrue(blockIfTrue), hasFalseBranch(false) {}
+			expression(expression), blockIfTrue(blockIfTrue), blockIfFalse(blockIfFalse) {}
 
 	virtual llvm::Value *codeGen(CodeGenContext &context);
 };

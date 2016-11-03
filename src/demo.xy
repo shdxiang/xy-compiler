@@ -5,15 +5,20 @@ do_math(a) {
   return x + 3
 }
 
+aaaa(a) {
+  x = a * 5
+  return x + 3
+}
+
+
 printi(do_math(4))
 
 fibonacci(num) {
     bb = 3
-    if (2 == 2) {
-        a = 3
-        cc = 2
+    if (bb == 2) {
+        bb + 3
     } else {
-        a = 4
+        bb + 1
     }
     return bb
 }
