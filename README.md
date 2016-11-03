@@ -120,8 +120,11 @@ flex -o lexical.cpp lexical.l
 
 ##　语法分析器
 
-这个阶段的目的是构建 `抽象语法树｀：
+`语法分析器` 的作用是构建 `抽象语法树`，通俗的说 `抽象语法树` 就是将源码用树状结构来表示，每个节点都代表源码中的一种结构；对于我们要实现的语法，其语法树是很简单的，如下：
 
+![ast.mm.svg](https://github.com/shdxiang/xy-compiler/blob/master/doc/ast.mm.svg)
+
+现在我们使用 Bison 生成 `语法分析器` 代码，同样 Bison 需要一个规则文件，我们的规则文件 [syntactic.y](https://github.com/shdxiang/xy-compiler/blob/master/src/syntactic.y) 如下，限于篇幅，省略了某些部分，可以通过链接查看完整内容：
 ```
 %{
     #include "ast.h"
@@ -132,6 +135,10 @@ flex -o lexical.cpp lexical.l
     extern int yylex();
     void yyerror(const char *s) { std::printf("Error: %s\n", s);std::exit(1); }
 %}
+
+...
+
+%token <token> TLPAREN TRPAREN TLBRACE TRBRACE TCOMMA
 
 ...
 
@@ -151,6 +158,43 @@ func_decl:
 %%
 
 ```
+
+是不是发现和 Flex 的规则文件很像呢？确实是这样，它也是分 3 个部分组成，同样，第一部分的 C++ 代码会被复制到生成的源文件中，还可以看到这里通过以下这样的语法定义前面了 Flex 使用的宏：
+
+```
+%token <token> TLPAREN TRPAREN TLBRACE TRBRACE TCOMMA
+```
+
+比较不同的是第 2 部分，不像 Flex 通过 `正则表达式` 通过定义规则，这里使用的是 `巴科斯范式(BNF: Backus-Naur Form)` 的形式定义了我们识别的语法结构。如下的语法表示函数：
+
+```
+func_decl:
+  ident TLPAREN func_decl_args TRPAREN block { $$ = new NFunctionDeclaration(*$1, *$3, *$5); delete $3; }
+;
+```
+
+可以看到后面大括号中间的也是 `动作` 代码，上例的动作是在 `抽象语法树` 中生成一个函数的节点。其实这部分的其他规则也是生成相应类型的节点到语法树中去。像 `NFunctionDeclaration` 这是一个我们自己定义的节点类，我们在 [ast.h](https://github.com/shdxiang/xy-compiler/blob/master/src/ast.h) 中定义了我们所要用到的节点，同样的，我们摘取一段代码如下：
+
+```
+...
+
+class NFunctionDeclaration : public NStatement {
+public:
+	const NIdentifier& id;
+	VariableList arguments;
+	NBlock& block;
+	NFunctionDeclaration(const NIdentifier& id,
+			const VariableList& arguments, NBlock& block) :
+		id(id), arguments(arguments), block(block) { }
+	virtual llvm::Value* codeGen(CodeGenContext& context);
+};
+
+...
+
+```
+
+可以看到，它有 `标识符（id）`，`参数列表（arguments）`，`函数体（block）` 这些成员，在语法分析阶段会设置好这些成员的内容供后面的 `代码生成` 阶段使用。还可以看到有一个 `codeGen()` 虚函数，你可能猜到了，后面就是通过调用它来生成相应的目标代码。
+
 
 
 
