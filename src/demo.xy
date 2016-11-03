@@ -1,8 +1,8 @@
 extern printi(val)
 
-do_math(a) {
-  x = a * 5
-  return x + 3
+foo(a) {
+  x = a * 2
+  return x + 6
 }
 
-printi(do_math(4))
+printi(foo(5))
