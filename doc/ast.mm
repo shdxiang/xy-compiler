@@ -1,13 +1,12 @@
 graph LR
-   Node --- NExpression
-   Node --- NStatement
-   NExpression --- NInteger
-   NExpression --- NIdentifier
-   NExpression --- NMethodCall
-   NExpression --- NBinaryOperator
-   NExpression --- NBlock
+   Node --- Expression
+   Node --- Statement
+   Expression --- Integer
+   Expression --- Identifier
+   Expression --- MethodCall
+   Expression --- BinaryOperator
+   Expression --- Block
 
-   NStatement--- NExpressionStatement
-   NStatement--- NExternDeclaration
-   NStatement--- NFunctionDeclaration
-
+   Statement--- ExpressionStatement
+   Statement--- ExternDeclaration
+   Statement--- FunctionDeclaration
