@@ -119,7 +119,7 @@ sudo apt-get install llvm-3.8*
 flex -o lexical.cpp lexical.l
 ```
 
-生成的　`lexical.cpp`　里会有一个 `yylex()` 函数供　`语法分析器`　调用；你可能发现了，有些宏和变量并没有被定义（如 `TEXTERN`，`yylval`，`yytext` 等），其实有些是 Flex 会自动定义的内置变量（如 `yytext`），有些是后面 `语法分析器` 生成工具里定义的变量（如 `yylval`），我们后面会看到。
+生成的　lexical.cpp　里会有一个 `yylex()` 函数供　`语法分析器`　调用；你可能发现了，有些宏和变量并没有被定义（如 `TEXTERN`，`yylval`，`yytext` 等），其实有些是 Flex 会自动定义的内置变量（如 `yytext`），有些是后面 `语法分析器` 生成工具里定义的变量（如 `yylval`），我们后面会看到。
 
 ## 语法分析器
 
@@ -211,16 +211,15 @@ bison -d -o syntactic.cpp syntactic.y
 ```c++
 ...
 
-Value* NIdentifier::codeGen(CodeGenContext& context)
-{
-	std::cout << "Creating identifier reference: " << name << endl;
-	if (context.locals().find(name) == context.locals().end()) {
-		std::cout << "undeclared variable " << name << endl;
+Value *NIdentifier::codeGen(CodeGenContext &context) {
+    std::cout << "Creating identifier reference: " << name << endl;
+    if (context.locals().find(name) == context.locals().end()) {
+        std::cout << "undeclared variable " << name << endl;
         std::cout << "Creating variable declaration " << name << endl;
         AllocaInst *alloc = new AllocaInst(Type::getInt64Ty(getGlobalContext()), name.c_str(), context.currentBlock());
         context.locals()[name] = alloc;
-	}
-	return new LoadInst(context.locals()[name], "", false, context.currentBlock());
+    }
+    return new LoadInst(context.locals()[name], "", false, context.currentBlock());
 }
 
 ...
