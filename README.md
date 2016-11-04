@@ -10,7 +10,7 @@
 
 - 数据类型只支持整型，这样不需要数据类型符；
 
-- 支持 `加`（+），`减（-）`，`乘（*）`， `除（/）` 运算
+- 支持 `加（+）`，`减（-）`，`乘（*）`， `除（/）` 运算
 
 - 支持函数调用
 
@@ -119,7 +119,7 @@ sudo apt-get install llvm-3.8*
 flex -o lexical.cpp lexical.l
 ```
 
-生成的　lexical.cpp　里会有一个 `yylex()` 函数供　`语法分析器`　调用；你可能发现了，有些宏和变量并没有被定义（如 TEXTERN，yylval，yytext 等），其实有些是 Flex 会自动定义的内置变量（如 yytext），有些是后面 `语法分析器` 生成工具里定义的变量（如 yylval），我们后面会看到。
+生成的　`lexical.cpp`　里会有一个 `yylex()` 函数供　`语法分析器`　调用；你可能发现了，有些宏和变量并没有被定义（如 `TEXTERN`，`yylval`，`yytext` 等），其实有些是 Flex 会自动定义的内置变量（如 `yytext`），有些是后面 `语法分析器` 生成工具里定义的变量（如 `yylval`），我们后面会看到。
 
 ## 语法分析器
 
@@ -206,7 +206,7 @@ bison -d -o syntactic.cpp syntactic.y
 
 ## 目标码生成
 
-这是编译的最后一步，我们就要成功了，这一步的主角是前面提到 LLVM，LLVM 是一个构建编译器的框架系统，我们使用他遍历 `语法分析` 阶段生成的 `抽象语法树`，然后为每个节点生成相应的 `目标码`。当然，无法避免的是我们需要使用 LLVM 提供的函数来编写生成目标码的源码，就是实现前面提到的虚函数 `codeGen()`，是不是有点拗口？不过确实是这样。我们在 [gen.cpp](https://github.com/shdxiang/xy-compiler/blob/master/src/gen.cpp) 中编写了不同节点的生成代码，我们摘取一段看一下：
+这是最后一步了，这一步的主角是前面提到 LLVM，LLVM 是一个构建编译器的框架系统，我们使用他遍历 `语法分析` 阶段生成的 `抽象语法树`，然后为每个节点生成相应的 `目标码`。当然，无法避免的是我们需要使用 LLVM 提供的函数来编写生成目标码的源码，就是实现前面提到的虚函数 `codeGen()`，是不是有点拗口？不过确实是这样。我们在 [gen.cpp](https://github.com/shdxiang/xy-compiler/blob/master/src/gen.cpp) 中编写了不同节点的生成代码，我们摘取一段看一下：
 
 ```c++
 ...
@@ -310,12 +310,16 @@ Exiting...
 
 可以看到最后正确输出了期望的结果，至此我们简单的编译器就完成了。
 
-## 参考：
+## 参考
 
 - [Writing an Interpreter with Lex, Yacc, and Memphis](http://memphis.compilertools.net/interpreter.html)
+
 - [Lex & Yacc Tutorial](http://epaperpress.com/lexandyacc/)
+
 - [Writing Your Own Toy Compiler Using Flex, Bison and LLVM](http://gnuu.org/2009/09/18/writing-your-own-toy-compiler)
-- [Kaleidoscope: Implementing a Language with LLVM](http://llvm.org/docs/tutorial/index.html#kaleidoscope-implementing-a-language-with-llvmhttp://llvm.org/docs/tutorial/index.html#kaleidoscope-implementing-a-language-with-llvm)
+
+- [Kaleidoscope: Implementing a Language with LLVM](http://llvm.org/docs/tutorial/index.html#kaleidoscope-implementing-a-language-with-llvm)
+
 
 
 

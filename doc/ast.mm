@@ -1,4 +1,4 @@
-graph TD
+graph LR
    Node --- NExpression
    Node --- NStatement
    NExpression --- NInteger
@@ -10,3 +10,4 @@ graph TD
    NStatement--- NExpressionStatement
    NStatement--- NExternDeclaration
    NStatement--- NFunctionDeclaration
+
