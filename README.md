@@ -211,15 +211,19 @@ bison -d -o syntactic.cpp syntactic.y
 ```c++
 ...
 
-Value *NIdentifier::codeGen(CodeGenContext &context) {
-    std::cout << "Creating identifier reference: " << name << endl;
-    if (context.locals().find(name) == context.locals().end()) {
-        std::cout << "undeclared variable " << name << endl;
-        std::cout << "Creating variable declaration " << name << endl;
-        AllocaInst *alloc = new AllocaInst(Type::getInt64Ty(getGlobalContext()), name.c_str(), context.currentBlock());
-        context.locals()[name] = alloc;
+Value *NMethodCall::codeGen(CodeGenContext &context) {
+    Function *function = context.module->getFunction(id.name.c_str());
+    if (function == NULL) {
+        std::cerr << "no such function " << id.name << endl;
     }
-    return new LoadInst(context.locals()[name], "", false, context.currentBlock());
+    std::vector<Value *> args;
+    ExpressionList::const_iterator it;
+    for (it = arguments.begin(); it != arguments.end(); it++) {
+        args.push_back((**it).codeGen(context));
+    }
+    CallInst *call = CallInst::Create(function, makeArrayRef(args), "", context.currentBlock());
+    std::cout << "Creating method call: " << id.name << endl;
+    return call;
 }
 
 ...

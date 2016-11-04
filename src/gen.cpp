@@ -51,7 +51,8 @@ Value *NIdentifier::codeGen(CodeGenContext &context) {
     if (context.locals().find(name) == context.locals().end()) {
         std::cout << "undeclared variable " << name << endl;
         std::cout << "Creating variable declaration " << name << endl;
-        AllocaInst *alloc = new AllocaInst(Type::getInt64Ty(getGlobalContext()), name.c_str(), context.currentBlock());
+        AllocaInst *alloc = new AllocaInst(Type::getInt64Ty(getGlobalContext()),
+                                           name.c_str(), context.currentBlock());
         context.locals()[name] = alloc;
     }
     return new LoadInst(context.locals()[name], "", false, context.currentBlock());
