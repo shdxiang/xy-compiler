@@ -168,7 +168,7 @@ func_decl:
 %token <token> TLPAREN TRPAREN TLBRACE TRBRACE TCOMMA
 ```
 
-比较不同的是第 2 部分，不像 Flex 通过 `正则表达式` 通过定义规则，这里使用的是 `巴科斯范式(BNF: Backus-Naur Form)` 的形式定义了我们识别的语法结构。如下的语法表示函数：
+比较不同的是第 2 部分，不像 Flex 通过 `正则表达式` 通过定义规则，这里使用的是 `巴科斯范式（BNF: Backus-Naur Form）` 的形式定义了我们识别的语法结构。如下的语法表示函数：
 
 ```
 func_decl:
