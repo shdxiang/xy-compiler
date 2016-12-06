@@ -7,6 +7,6 @@ graph LR
    Expression --- BinaryOperator
    Expression --- Block
 
-   Statement--- ExpressionStatement
-   Statement--- ExternDeclaration
-   Statement--- FunctionDeclaration
+   Statement --- ExpressionStatement
+   Statement --- ExternDeclaration
+   Statement --- FunctionDeclaration
