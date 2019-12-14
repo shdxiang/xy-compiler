@@ -1,0 +1,3 @@
+[submodule "external/winflexbision"]
+	path = external/winflexbision
+	url = https://github.com/lexxmark/winflexbison.git
