@@ -8,7 +8,7 @@ project(xy-compiler C CXX)
 
 include_directories(
     "${CMAKE_CURRENT_BINARY_DIR}/"
-    "${CMAKE_CURRENT_LIST_DIR}/src/"
+    "${CMAKE_CURRENT_LIST_DIR}/"
 )
 
 if(WIN32)
@@ -40,11 +40,35 @@ file(GLOB SRC
     ${CMAKE_CURRENT_BINARY_DIR}/*.cpp
 )
 
-add_executable(xy-compiler ${SRC})
-target_link_libraries(xy-compiler ${llvm_libs})
+llvm_map_components_to_libnames(llvm_libs all)
+message(STATUS "Linking with: ${llvm_libs}")
+
+configure_file("demo.xy" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/demo.xy" COPYONLY)
+
+add_executable(xy-compiler 
+    ${SRC}
+    ${BISON_xy_parser_OUTPUTS}
+    ${FLEX_xy_scanner_OUTPUTS})
+
+target_link_libraries(xy-compiler 
+    PUBLIC ${llvm_libs}
+    PUBLIC ${FLEX_LIBRARIES})
 
 if(WIN32)
     add_dependencies(xy-compiler
         win_bison
         win_flex)
 endif()
+
+add_custom_command(OUTPUT demo
+    COMMAND xy-compiler < "${CMAKE_CURRENT_LIST_DIR}/demo.xy" > "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/demo"
+)
+
+add_custom_target(compile_demo ALL
+    DEPENDS demo xy-compiler
+)
+
+set_source_files_properties(
+    "demo.xy" PROPERTIES GENERATED TRUE)
+
+add_dependencies(compile_demo xy-compiler)

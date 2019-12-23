@@ -4,6 +4,8 @@
 
 using namespace std;
 
+LLVMContext TheContext;
+
 /* Compile the AST into a module */
 void CodeGenContext::generateCode(NBlock &root) {
   std::cout << "Generating code...\n";
@@ -28,8 +30,9 @@ void CodeGenContext::generateCode(NBlock &root) {
    */
   std::cout << "Code is generated.\n";
   PassManager<Module> pm;
+  AnalysisManager<Module> am;
   pm.addPass(PrintModulePass(outs()));
-  pm.run(*module);
+  pm.run(*module, am);
 }
 
 /* Executes the AST by running the main function */
@@ -54,7 +57,7 @@ Value *NIdentifier::codeGen(CodeGenContext &context) {
   if (context.locals().find(name) == context.locals().end()) {
     std::cout << "undeclared variable " << name << endl;
     std::cout << "Creating variable declaration " << name << endl;
-    AllocaInst *alloc = new AllocaInst(Type::getInt64Ty(getGlobalContext()),
+    AllocaInst *alloc = new AllocaInst(Type::getInt64Ty(getGlobalContext()), 0u,
                                        name.c_str(), context.currentBlock());
     context.locals()[name] = alloc;
   }
@@ -111,8 +114,8 @@ Value *NAssignment::codeGen(CodeGenContext &context) {
     std::cout << "undeclared variable " << lhs.name << endl;
     std::cout << "Creating variable declaration " << lhs.name << endl;
     AllocaInst *alloc =
-        new AllocaInst(Type::getInt64Ty(getGlobalContext()), lhs.name.c_str(),
-                       context.currentBlock());
+        new AllocaInst(Type::getInt64Ty(getGlobalContext()), 0u,
+                       lhs.name.c_str(), context.currentBlock());
     context.locals()[lhs.name] = alloc;
   }
   return new StoreInst(rhs.codeGen(context), context.locals()[lhs.name], false,
