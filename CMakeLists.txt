@@ -56,7 +56,20 @@ add_definitions(${LLVM_DEFINITIONS})
 llvm_map_components_to_libnames(llvm_libs support core irreader)
 
 if(WIN32)
-    add_subdirectory(external/winflexbision)
+    execute_process(COMMAND ${CMAKE_COMMAND}
+        -S ${CMAKE_CURRENT_LIST_DIR}/external/winflexbision
+        -B ${CMAKE_BINARY_DIR}/external/winflexbision
+        -G ${CMAKE_GENERATOR}
+        -D CMAKE_RUNTIME_OUTPUT_DIRECTORY="${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+        -D OUTPUT_DEBUG="${OUTPUT_DEBUG}"
+        -D OUTPUT_RELEASE="${OUTPUT_RELEASE}"
+        -D CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG="${CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG}"
+        -D CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}"
+    )
+
+    execute_process(COMMAND ${CMAKE_COMMAND}
+        --build ${CMAKE_BINARY_DIR}/external/winflexbision
+    )
 
     set(BISON_ROOT_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}" CACHE STRING "BISON_ROOT_DIR" FORCE)
     set(FLEX_ROOT_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}" CACHE STRING "FLEX_ROOT_DIR" FORCE)
