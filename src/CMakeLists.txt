@@ -12,9 +12,15 @@ include_directories(
 )
 
 if(WIN32)
-    execute_process(COMMAND CMD /c "git describe --tags --always --dirty" OUTPUT_VARIABLE VER)
+    execute_process(
+        COMMAND CMD /c "git describe --tags --always --dirty" 
+        OUTPUT_VARIABLE VER 
+        WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
 elseif(UNIX)
-    execute_process(COMMAND git describe --tags --always --dirty OUTPUT_VARIABLE VER)
+    execute_process(
+        COMMAND git describe --tags --always --dirty 
+        OUTPUT_VARIABLE VER 
+        WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
     if(APPLE)
         execute_process(COMMAND sw_vers -productVersion OUTPUT_VARIABLE MACOSX_DEPLOYMENT_TARGET)
         string(REGEX REPLACE "\n$" "" MACOSX_DEPLOYMENT_TARGET "${MACOSX_DEPLOYMENT_TARGET}")

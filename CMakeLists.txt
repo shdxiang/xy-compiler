@@ -45,7 +45,7 @@ endif()
 #     message(FATAL_ERROR "Compiler ${CMAKE_CXX_COMPILER} has no C++14 support.")
 # endif()
 
-find_package(LLVM 8 REQUIRED CONFIG)
+find_package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 message(STATUS "Linking with: ${LLVM_DEFINITIONS}")
