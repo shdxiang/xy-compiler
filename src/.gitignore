@@ -4,3 +4,4 @@ syntactic.cpp
 syntactic.h*
 lexical.cpp
 lexical.h*
+version.hpp

@@ -102,16 +102,16 @@ respectively ``FLEX_TARGET`` and ``BISON_TARGET`` macros.
 find_program(FLEX_EXECUTABLE NAMES flex win_flex DOC "path to the flex executable")
 mark_as_advanced(FLEX_EXECUTABLE)
 
-find_library(FL_LIBRARY NAMES fl
-  DOC "Path to the fl library")
+# find_library(FL_LIBRARY NAMES fl
+#   DOC "Path to the fl library")
 
-find_path(FLEX_INCLUDE_DIR FlexLexer.h
-  DOC "Path to the flex headers")
+# find_path(FLEX_INCLUDE_DIR FlexLexer.h
+#   DOC "Path to the flex headers")
 
-mark_as_advanced(FL_LIBRARY FLEX_INCLUDE_DIR)
+# mark_as_advanced(FL_LIBRARY FLEX_INCLUDE_DIR)
 
-set(FLEX_INCLUDE_DIRS ${FLEX_INCLUDE_DIR})
-set(FLEX_LIBRARIES ${FL_LIBRARY})
+# set(FLEX_INCLUDE_DIRS ${FLEX_INCLUDE_DIR})
+# set(FLEX_LIBRARIES ${FL_LIBRARY})
 
 if(FLEX_EXECUTABLE)
 

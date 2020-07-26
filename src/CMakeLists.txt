@@ -1,9 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
 
-if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-	set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "CMAKE_TOOLCHAIN_FILE")
-endif()
-
 project(xy-compiler C CXX)
 
 include_directories(
@@ -33,7 +29,7 @@ endif()
 string(REGEX REPLACE "\n$" "" VER "${VER}")
 message(STATUS "xy-compiler version: ${VER}")
 
-configure_file(version.hpp.in "version.hpp")
+configure_file(version.hpp.in "${CMAKE_CURRENT_LIST_DIR}/version.hpp")
 
 BISON_TARGET(xy_parser syntactic.y ${CMAKE_CURRENT_BINARY_DIR}/syntactic.cpp)
 FLEX_TARGET(xy_scanner lexical.l  ${CMAKE_CURRENT_BINARY_DIR}/lexical.cpp)
@@ -46,8 +42,8 @@ file(GLOB SRC
     ${CMAKE_CURRENT_BINARY_DIR}/*.cpp
 )
 
-llvm_map_components_to_libnames(llvm_libs all)
-message(STATUS "Linking with: ${llvm_libs}")
+# llvm_map_components_to_libnames(llvm_libs all)
+# message(STATUS "Linking with: ${llvm_libs}")
 
 configure_file("demo.xy" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/demo.xy" COPYONLY)
 

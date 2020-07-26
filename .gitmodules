@@ -1,3 +1,6 @@
 [submodule "external/winflexbision"]
 	path = external/winflexbision
 	url = https://github.com/lexxmark/winflexbison.git
+[submodule "external/unistd_h"]
+	path = external/unistd_h
+	url = https://github.com/win32ports/unistd_h.git
