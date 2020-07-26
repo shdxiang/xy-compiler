@@ -35,7 +35,7 @@ target_include_directories(xy-compiler-parser
     PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 
 if(WIN32)
-    add_dependencies(xy-compiler
+    add_dependencies(xy-compiler-parser
         win_bison
         win_flex)
 endif()
