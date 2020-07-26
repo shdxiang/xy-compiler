@@ -24,14 +24,13 @@ set(CMAKE_MODULE_PATH
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
-
 set(CMAKE_MACOSX_RPATH 1)
 set(CMAKE_CXX_STANDARD 17 CACHE STRING "Set to 11 or 14 to enable C++11 or C++17 builds, respectively." FORCE)
 set(CMAKE_C_STANDARD 11 CACHE STRING "Set to 99 or 11 to enable C99 or C11 builds, respectively." FORCE)
 set_property(GLOBAL PROPERTY CXX_STANDARD_REQUIRED ON)
 
 if(NOT WIN32)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
     if(NOT CMAKE_BUILD_TYPE)
         set(CMAKE_BUILD_TYPE "Debug")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
@@ -45,7 +44,7 @@ if(WIN32)
     if(MSVC)
         add_compile_options("/source-charset:utf-8" "/EHsc" "/Zc:threadSafeInit-")
 
-        if(NOT CMAKE_BUILD_TYPE)
+        if((NOT CMAKE_BUILD_TYPE) OR (NOT CMAKE_BUILD_TYPE STREQUAL "Debug"))
             add_compile_options("/MT")
         else()
             add_compile_options("/MTd")
