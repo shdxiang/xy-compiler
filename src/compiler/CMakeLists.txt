@@ -34,7 +34,7 @@ message(STATUS "xy-compiler version: ${VER}")
 
 configure_file(version.hpp.in "${CMAKE_CURRENT_LIST_DIR}/version.hpp")
 
-file(GLOB COMPILER_SRC
+file(GLOB_RECURSE COMPILER_SRC
     ${CMAKE_CURRENT_LIST_DIR}/*.c
     ${CMAKE_CURRENT_LIST_DIR}/*.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/*.c
@@ -42,6 +42,9 @@ file(GLOB COMPILER_SRC
 )
 
 add_executable(xy-compiler ${COMPILER_SRC})
+
+target_compile_definitions(xy-compiler
+    PRIVATE MODULE_API_EXPORTS)
 
 target_link_libraries(xy-compiler
     PUBLIC xy-compiler-parser

@@ -2,6 +2,8 @@
 #include "ast.h"
 #include "syntactic.hpp"
 
+#include <exception>
+
 #include <llvm/IR/LegacyPassManager.h>
 
 using namespace std;
@@ -42,12 +44,17 @@ void CodeGenContext::generateCode(NBlock &root) {
 
 /* Executes the AST by running the main function */
 GenericValue CodeGenContext::runCode() {
-  std::cout << "Running code:\n";
-  ExecutionEngine *ee = EngineBuilder(unique_ptr<Module>(module)).create();
-  ee->finalizeObject();
-  vector<GenericValue> noargs;
-  GenericValue v = ee->runFunction(mainFunction, noargs);
-  return v;
+  try {
+    std::cout << "Running code:\n";
+    ExecutionEngine *ee = EngineBuilder(unique_ptr<Module>(module)).create();
+    ee->finalizeObject();
+    vector<GenericValue> noargs;
+    GenericValue v = ee->runFunction(mainFunction, noargs);
+    delete ee;
+    return v;
+  } catch (std::exception &ex) {
+    std::cout << ex.what() << std::endl;
+  }
 }
 
 /* -- Code Generation -- */
