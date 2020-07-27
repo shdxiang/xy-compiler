@@ -1,3 +1,7 @@
+#if defined(__STDC_LIB_EXT1__)
+#define __STDC_WANT_LIB_EXT1__ 1
+#endif
+
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
@@ -32,11 +36,19 @@ int main(int argc, char **argv) {
   }
   if (result.count("file")) {
     auto inputFilePath = result["f,file"].as<std::string>();
+#if defined(__STDC_LIB_EXT1__)
     fopen_s(&yyin, inputFilePath.c_str(), "r");
+#else
+    yyin = fopen(inputFilePath.c_str(), "r");
+#endif
   }
   if (result.count("output")) {
     auto outputFilePath = result["o,output"].as<std::string>();
+#if defined(__STDC_LIB_EXT1__)
     fopen_s(&yyout, outputFilePath.c_str(), "w");
+#else
+    yyout = fopen(outputFilePath.c_str(), "w");
+#endif
   }
 
   yyparse();
