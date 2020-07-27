@@ -4,3 +4,6 @@
 [submodule "external/unistd_h"]
 	path = external/unistd_h
 	url = https://github.com/win32ports/unistd_h.git
+[submodule "external/cxxopts"]
+	path = external/cxxopts
+	url = https://github.com/jarro2783/cxxopts.git
