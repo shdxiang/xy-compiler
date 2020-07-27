@@ -22,9 +22,14 @@ int main(int argc, char **argv) {
       "f,file", "Input file name", cxxopts::value<std::string>())(
       "o,output", "Output file name", cxxopts::value<std::string>())(
       "v,verbose", "Verbose output",
-      cxxopts::value<bool>()->default_value("false"));
+      cxxopts::value<bool>()->default_value("false"))("h,help", "Print usage");
 
   auto result = options.parse(argc, argv);
+
+  if (result.count("help")) {
+    std::cout << options.help() << std::endl;
+    exit(0);
+  }
   if (result.count("f,file") > 0) {
     auto inputFilePath = result["f,file"].as<std::string>();
     fopen_s(&yyin, inputFilePath.c_str(), "r");
