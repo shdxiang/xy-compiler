@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.14)
 
 project(xy-compiler-demo C CXX)
 
-configure_file("demo.xy" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/demo.xy" COPYONLY)
+configure_file("demo.xy" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/demo.xy" NEWLINE_STYLE UNIX)
 
 if(COMPILE_DEMO)
     add_custom_command(OUTPUT demo
