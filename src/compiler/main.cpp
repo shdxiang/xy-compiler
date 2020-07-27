@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
     exit(0);
   }
   if (result.count("file")) {
-    auto inputFilePath = result["f,file"].as<std::string>();
+    auto inputFilePath = result["file"].as<std::string>();
 #if defined(__STDC_LIB_EXT1__)
     fopen_s(&yyin, inputFilePath.c_str(), "r");
 #else
@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
 #endif
   }
   if (result.count("output")) {
-    auto outputFilePath = result["o,output"].as<std::string>();
+    auto outputFilePath = result["output"].as<std::string>();
 #if defined(__STDC_LIB_EXT1__)
     fopen_s(&yyout, outputFilePath.c_str(), "w");
 #else
