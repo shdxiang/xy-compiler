@@ -44,4 +44,5 @@ file(GLOB COMPILER_SRC
 add_executable(xy-compiler ${COMPILER_SRC})
 
 target_link_libraries(xy-compiler
-    PUBLIC xy-compiler-parser)
+    PUBLIC xy-compiler-parser
+    PUBLIC cxxopts)

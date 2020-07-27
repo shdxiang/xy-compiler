@@ -146,4 +146,6 @@ else()
     find_package(FLEX REQUIRED)
 endif()
 
+add_subdirectory(external/cxxopts)
+
 add_subdirectory(src)
