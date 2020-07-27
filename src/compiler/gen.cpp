@@ -2,6 +2,8 @@
 #include "ast.h"
 #include "syntactic.hpp"
 
+#include <llvm/IR/LegacyPassManager.h>
+
 using namespace std;
 
 LLVMContext TheContext;
@@ -29,10 +31,13 @@ void CodeGenContext::generateCode(NBlock &root) {
      to see if our program compiled properly
    */
   std::cout << "Code is generated.\n";
-  PassManager<Module> pm;
-  AnalysisManager<Module> am;
-  pm.addPass(PrintModulePass(outs()));
-  pm.run(*module, am);
+  // PassManager<Module> pm;
+  // AnalysisManager<Module> am;
+  // pm.addPass(PrintModulePass(outs()));
+  // pm.run(*module, am);
+  llvm::legacy::PassManager pm;
+  pm.add(createPrintModulePass(outs()));
+  pm.run(*module);
 }
 
 /* Executes the AST by running the main function */
