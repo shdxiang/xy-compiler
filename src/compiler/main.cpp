@@ -30,11 +30,11 @@ int main(int argc, char **argv) {
     std::cout << options.help() << std::endl;
     exit(0);
   }
-  if (result.count("f,file") > 0) {
+  if (result.count("file")) {
     auto inputFilePath = result["f,file"].as<std::string>();
     fopen_s(&yyin, inputFilePath.c_str(), "r");
   }
-  if (result.count("o,output") > 0) {
+  if (result.count("output")) {
     auto outputFilePath = result["o,output"].as<std::string>();
     fopen_s(&yyout, outputFilePath.c_str(), "w");
   }
