@@ -43,6 +43,11 @@ file(GLOB_RECURSE COMPILER_SRC
 
 add_executable(xy-compiler ${COMPILER_SRC})
 
+if(UNIX)
+    target_link_options(xy-compiler
+        PUBLIC "-rdynamic")
+endif()
+
 target_compile_definitions(xy-compiler
     PRIVATE MODULE_API_EXPORTS)
 
