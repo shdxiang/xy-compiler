@@ -4,6 +4,7 @@
 
 #include <exception>
 
+#include <llvm/ADT/Twine.h>
 #include <llvm/IR/LegacyPassManager.h>
 
 using namespace std;
@@ -73,8 +74,15 @@ Value *NIdentifier::codeGen(CodeGenContext &context) {
                                        name.c_str(), context.currentBlock());
     context.locals()[name] = alloc;
   }
+
+#if LLVM_VERSION_MAJOR == 12
+  const auto &local = context.locals()[name];
+  return new LoadInst(cast<PointerType>(local->getType())->getElementType(),
+                      local, llvm::Twine(""), false, context.currentBlock());
+#else
   return new LoadInst(context.locals()[name], "", false,
                       context.currentBlock());
+#endif
 }
 
 Value *NMethodCall::codeGen(CodeGenContext &context) {

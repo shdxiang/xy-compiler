@@ -2,9 +2,6 @@ cmake_minimum_required(VERSION 3.14)
 
 project(xy-compiler C CXX)
 
-set(CMAKE_CXX_STANDARD 17 CACHE STRING "Set to 11 or 14 to enable C++11 or C++17 builds, respectively." FORCE)
-set(CMAKE_C_STANDARD 11 CACHE STRING "Set to 99 or 11 to enable C99 or C11 builds, respectively." FORCE)
-
 include_directories(
     "${CMAKE_CURRENT_BINARY_DIR}/"
     "${CMAKE_CURRENT_LIST_DIR}/"
@@ -32,7 +29,7 @@ endif()
 string(REGEX REPLACE "\n$" "" VER "${VER}")
 message(STATUS "xy-compiler version: ${VER}")
 
-configure_file(version.hpp.in "${CMAKE_CURRENT_LIST_DIR}/version.hpp")
+configure_file(version.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/version.hpp")
 
 file(GLOB_RECURSE COMPILER_SRC
     ${CMAKE_CURRENT_LIST_DIR}/*.c
@@ -43,14 +40,13 @@ file(GLOB_RECURSE COMPILER_SRC
 
 add_executable(xy-compiler ${COMPILER_SRC})
 
-if(UNIX)
-    target_link_options(xy-compiler
-        PUBLIC "-rdynamic")
-endif()
-
 target_compile_definitions(xy-compiler
     PRIVATE MODULE_API_EXPORTS)
 
 target_link_libraries(xy-compiler
     PUBLIC xy-compiler-parser
     PUBLIC cxxopts)
+
+target_include_directories(xy-compiler
+    PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/"
+)

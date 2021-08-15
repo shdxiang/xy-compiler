@@ -2,9 +2,6 @@ cmake_minimum_required(VERSION 3.14)
 
 project(xy-compiler-parser C CXX)
 
-set(CMAKE_CXX_STANDARD 14 CACHE STRING "Set to 11 or 14 to enable C++11 or C++17 builds, respectively." FORCE)
-set(CMAKE_C_STANDARD 11 CACHE STRING "Set to 99 or 11 to enable C99 or C11 builds, respectively." FORCE)
-
 include_directories(
     "${CMAKE_CURRENT_BINARY_DIR}/"
     "${CMAKE_CURRENT_LIST_DIR}/"

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.21 FATAL_ERROR)
 
 project(xy-compiler-proj C CXX)
 
@@ -23,23 +23,15 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(CMAKE_MACOSX_RPATH 1)
 set(CMAKE_CXX_STANDARD 17 CACHE STRING "Set to 11 or 14 to enable C++11 or C++17 builds, respectively." FORCE)
-set(CMAKE_C_STANDARD 11 CACHE STRING "Set to 99 or 11 to enable C99 or C11 builds, respectively." FORCE)
+set(CMAKE_C_STANDARD 17 CACHE STRING "Set to 99 or 11 to enable C99 or C11 builds, respectively." FORCE)
 set_property(GLOBAL PROPERTY CXX_STANDARD_REQUIRED ON)
-
-if(NOT WIN32)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
-    if(NOT CMAKE_BUILD_TYPE)
-        set(CMAKE_BUILD_TYPE "Debug")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-    else()
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
-    endif()
-endif()
+set_property(GLOBAL PROPERTY C_STANDARD_REQUIRED ON)
 
 if(WIN32)
     add_compile_definitions("WIN32_LEAN_AND_MEAN" "_CRT_SECURE_NO_WARNINGS" "NOMINMAX")
     if(MSVC)
-        add_compile_options("/source-charset:utf-8" "/EHsc" "/Zc:threadSafeInit-")
+        add_compile_definitions("__extension__")
+        add_compile_options("/source-charset:utf-8")
 
         if((NOT CMAKE_BUILD_TYPE) OR (NOT CMAKE_BUILD_TYPE STREQUAL "Debug"))
             add_compile_options("/MT")
@@ -65,6 +57,7 @@ if(WIN32)
         endforeach()
     endif()
 else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
     if(UNIX)
         if(APPLE)
             add_compile_options("-m64" "-fPIC" "-march=native")
@@ -94,58 +87,6 @@ else()
     endif()
 endif()
 
-find_package(LLVM REQUIRED CONFIG)
-message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
-message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
-message(STATUS "Linking with: ${LLVM_DEFINITIONS}")
-
-include_directories(${LLVM_INCLUDE_DIRS})
-add_definitions(${LLVM_DEFINITIONS})
-
-llvm_map_components_to_libnames(llvm_libs core support mcparser option bitreader profiledata irreader executionengine mcjit x86codegen x86asmparser)
-message(STATUS "Linking with: ${llvm_libs}")
-
-if(WIN32)
-    execute_process(COMMAND ${CMAKE_COMMAND}
-        -S ${CMAKE_CURRENT_LIST_DIR}/external/winflexbision
-        -B ${CMAKE_BINARY_DIR}/external/winflexbision
-        -G ${CMAKE_GENERATOR}
-        -D CMAKE_BUILD_TYPE=Debug
-        -D CMAKE_RUNTIME_OUTPUT_DIRECTORY=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-        -D CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG=${CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG}
-        -D CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE=${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}
-    )
-
-    execute_process(COMMAND ${CMAKE_COMMAND}
-        --build ${CMAKE_BINARY_DIR}/external/winflexbision
-    )
-
-    execute_process(COMMAND ${CMAKE_COMMAND}
-        --install ${CMAKE_BINARY_DIR}/external/winflexbision --prefix ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-    )
-
-    add_subdirectory(external/winflexbision)
-
-    set(BISON_ROOT_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}" CACHE STRING "BISON_ROOT_DIR" FORCE)
-    set(FLEX_ROOT_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}" CACHE STRING "FLEX_ROOT_DIR" FORCE)
-
-    set(BISON_EXECUTABLE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/win_bison.exe" CACHE STRING "BISON_EXECUTABLE" FORCE)
-    set(BISON_version_result "0" CACHE STRING "BISON_version_result" FORCE)
-    set(BISON_version_output "bison++ Version 1,0,0" CACHE STRING "BISON_version_result" FORCE)
-
-    set(FLEX_EXECUTABLE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/win_flex.exe" CACHE STRING "FLEX_EXECUTABLE" FORCE)
-    set(FLEX_version_result "0" CACHE STRING "FLEX_version_result" FORCE)
-    set(FLEX_FIND_REQUIRED "0" CACHE STRING "FLEX_FIND_REQUIRED" FORCE)
-
-    include(UseBISON)
-    include(UseFLEX)
-
-    include_directories(external/unistd_h)
-else()
-    find_package(BISON REQUIRED)
-    find_package(FLEX REQUIRED)
-endif()
-
-add_subdirectory(external/cxxopts)
+include(external/InitializeExternalComponents.cmake)
 
 add_subdirectory(src)
