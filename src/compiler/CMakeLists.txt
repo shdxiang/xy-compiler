@@ -40,12 +40,10 @@ file(GLOB_RECURSE COMPILER_SRC
 
 add_executable(xy-compiler ${COMPILER_SRC})
 
-target_compile_definitions(xy-compiler
-    PRIVATE MODULE_API_EXPORTS)
-
 target_link_libraries(xy-compiler
     PUBLIC xy-compiler-parser
-    PUBLIC cxxopts)
+    PUBLIC cxxopts
+    PUBLIC xy-rt)
 
 target_include_directories(xy-compiler
     PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/"

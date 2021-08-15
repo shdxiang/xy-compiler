@@ -7,8 +7,9 @@
 #include <iomanip>
 #include <iostream>
 
-
 #include <cxxopts.hpp>
+
+#include <llvm/Support/DynamicLibrary.h>
 
 #include "ast.h"
 #include "gen.h"
@@ -62,7 +63,13 @@ int main(int argc, char **argv) {
 
   yyparse();
 
-  std::cout << std::boolalpha << (programBlock != NULL) << std::endl;
+  fclose(yyin);
+  fclose(yyout);
+
+  std::cout << std::boolalpha
+            << "Parsing succedded: " << (programBlock != nullptr) << std::endl;
+
+  llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
 
   InitializeNativeTarget();
   InitializeNativeTargetAsmPrinter();
@@ -74,7 +81,7 @@ int main(int argc, char **argv) {
 
   delete programBlock;
 
-  std::cout << "Exiting...\n";
+  std::cout << "Exiting..." << std::endl;
 
   return 0;
 }
