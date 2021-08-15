@@ -89,10 +89,10 @@ else()
     if(APPLE)
         find_program(MAC_HBREW_BIN brew)
 
-        if (MAC_HBREW_BIN)
+        if(MAC_HBREW_BIN)
             execute_process(COMMAND ${MAC_HBREW_BIN} "--prefix" OUTPUT_VARIABLE BREW_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
             list(INSERT CMAKE_PREFIX_PATH 0 ${BREW_PREFIX})
-        endif ()
+        endif()
 
         execute_process(
             COMMAND ${MAC_HBREW_BIN} --prefix bison

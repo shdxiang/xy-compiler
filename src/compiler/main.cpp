@@ -4,7 +4,9 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <iomanip>
 #include <iostream>
+
 
 #include <cxxopts.hpp>
 
@@ -31,7 +33,7 @@ int main(int argc, char **argv) {
       cxxopts::value<bool>()->default_value("false"))("h,help", "Print usage")(
       "version", "Print version");
 
-  auto result = options.parse(argc, argv);
+  const auto &result = options.parse(argc, argv);
 
   if (result.count("help")) {
     std::cout << options.help() << std::endl;
@@ -42,7 +44,7 @@ int main(int argc, char **argv) {
     return 0;
   }
   if (result.count("file")) {
-    auto inputFilePath = result["file"].as<std::string>();
+    const auto &inputFilePath = result["file"].as<std::string>();
 #if defined(__STDC_LIB_EXT1__) || defined(_MSC_VER)
     fopen_s(&yyin, inputFilePath.c_str(), "r");
 #else
@@ -59,13 +61,18 @@ int main(int argc, char **argv) {
   }
 
   yyparse();
-  std::cout << programBlock << endl;
+
+  std::cout << std::boolalpha << (programBlock != NULL) << std::endl;
+
   InitializeNativeTarget();
   InitializeNativeTargetAsmPrinter();
   InitializeNativeTargetAsmParser();
+
   CodeGenContext context;
   context.generateCode(*programBlock);
   context.runCode();
+
+  delete programBlock;
 
   std::cout << "Exiting...\n";
 
