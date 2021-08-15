@@ -17,11 +17,6 @@ file(GLOB_RECURSE module_defs
 
 include(GenerateExportHeader)
 
-generate_export_header(${project_name}
-    EXPORT_FILE_NAME "${CMAKE_CURRENT_BINARY_DIR}/include/libxy/exports.h"
-    EXPORT_MACRO_NAME LIB_XY_EXPORTS
-)
-
 if(WIN32)
     add_library(${project_name}
         SHARED ${src} ${module_defs}
@@ -31,6 +26,11 @@ else()
         SHARED ${src}
     )
 endif()
+
+generate_export_header(${project_name}
+    EXPORT_FILE_NAME "${CMAKE_CURRENT_BINARY_DIR}/include/libxy/exports.h"
+    EXPORT_MACRO_NAME LIB_XY_EXPORTS
+)
 
 target_link_libraries(${project_name}
     PUBLIC ${llvm_libs})
