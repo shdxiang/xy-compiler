@@ -1,0 +1,22 @@
+#ifndef B353712A_E070_4ACE_B51E_06E2B1FB588F
+#define B353712A_E070_4ACE_B51E_06E2B1FB588F
+
+#cmakedefine LIBXY_VER "@VER@"
+
+#ifndef LIBXY_VER
+#define LIBXY_VER "1.0.0"
+#endif
+
+#include <libxy/exports.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+LIB_XY_EXPORTS int get_libxy_version(char *buffer, int buffer_size);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* B353712A_E070_4ACE_B51E_06E2B1FB588F */
