@@ -34,13 +34,17 @@ void CodeGenContext::generateCode(NBlock &root) {
      to see if our program compiled properly
    */
   std::cout << "Code is generated.\n";
-  // PassManager<Module> pm;
-  // AnalysisManager<Module> am;
-  // pm.addPass(PrintModulePass(outs()));
-  // pm.run(*module, am);
+
+#if LLVM_VERSION_MAJOR < 10
+  PassManager<Module> pm;
+  AnalysisManager<Module> am;
+  pm.addPass(PrintModulePass(outs()));
+  pm.run(*module, am);
+#else
   llvm::legacy::PassManager pm;
   pm.add(createPrintModulePass(outs()));
   pm.run(*module);
+#endif
 }
 
 /* Executes the AST by running the main function */

@@ -10,6 +10,31 @@ file(GLOB_RECURSE src
     ${CMAKE_CURRENT_BINARY_DIR}/implementation/*.cpp
 )
 
+# ---------------------------------------
+if(WIN32)
+    execute_process(
+        COMMAND CMD /c "git describe --tags --always --dirty" 
+        OUTPUT_VARIABLE LIBXY_VER
+        WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
+elseif(UNIX)
+    execute_process(
+        COMMAND git describe --tags --always --dirty
+        OUTPUT_VARIABLE LIBXY_VER
+        WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
+    if(APPLE)
+        execute_process(COMMAND sw_vers -productVersion OUTPUT_VARIABLE MACOSX_DEPLOYMENT_TARGET)
+        string(REGEX REPLACE "\n$" "" MACOSX_DEPLOYMENT_TARGET "${MACOSX_DEPLOYMENT_TARGET}")
+        message(STATUS "MACOSX_DEPLOYMENT_TARGET: ${MACOSX_DEPLOYMENT_TARGET}")
+    endif()
+else()
+    message(fatal "Unsupported platform detected.")
+endif()
+
+string(REGEX REPLACE "\n$" "" LIBXY_VER "${LIBXY_VER}")
+message(STATUS "libxy version: ${LIBXY_VER}")
+
+configure_file("${CMAKE_CURRENT_LIST_DIR}/include/public/libxy/version.h.in" "${CMAKE_CURRENT_BINARY_DIR}/include/libxy/version.h")
+
 # ----------------------------------------
 file(GLOB_RECURSE module_defs
     ${CMAKE_CURRENT_LIST_DIR}/*.def

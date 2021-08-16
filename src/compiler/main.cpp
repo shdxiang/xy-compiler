@@ -11,6 +11,8 @@
 
 #include <llvm/Support/DynamicLibrary.h>
 
+#include <libxy/version.h>
+
 #include "ast.h"
 #include "gen.h"
 
@@ -42,6 +44,12 @@ int main(int argc, char **argv) {
   }
   if (result.count("version")) {
     std::cout << "Version: " << VER << std::endl;
+    char buffer[256];
+    if (get_libxy_version(buffer, sizeof(buffer)) > 0) {
+      std::cout << "failed to get libxy version." << std::endl;
+      return 1;
+    }
+    std::cout << "libxy version: " << buffer << std::endl;
     return 0;
   }
   if (result.count("file")) {
@@ -63,9 +71,6 @@ int main(int argc, char **argv) {
 
   yyparse();
 
-  fclose(yyin);
-  fclose(yyout);
-
   std::cout << std::boolalpha
             << "Parsing succedded: " << (programBlock != nullptr) << std::endl;
 
@@ -82,6 +87,9 @@ int main(int argc, char **argv) {
   delete programBlock;
 
   std::cout << "Exiting..." << std::endl;
+
+  fclose(yyin);
+  fclose(yyout);
 
   return 0;
 }
