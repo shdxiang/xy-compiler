@@ -1,6 +1,12 @@
+#ifndef A491CF4A_61DB_4F49_B826_A74408D8BC9D
+#define A491CF4A_61DB_4F49_B826_A74408D8BC9D
+
 #include <iostream>
-#include <llvm/IR/Value.h>
+#include <string>
 #include <vector>
+
+
+#include <llvm/IR/Value.h>
 
 class CodeGenContext;
 class NStatement;
@@ -103,3 +109,5 @@ public:
       : id(id), arguments(arguments), block(block) {}
   virtual llvm::Value *codeGen(CodeGenContext &context);
 };
+
+#endif /* A491CF4A_61DB_4F49_B826_A74408D8BC9D */
