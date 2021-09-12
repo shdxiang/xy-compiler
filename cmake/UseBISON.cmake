@@ -266,8 +266,11 @@ if(BISON_EXECUTABLE)
       endif()
       unset(_BISON_CMP0088)
 
+      get_filename_component(BISON_EXECUTABLE_DIR ${BISON_EXECUTABLE} DIRECTORY)
+      set(BISON_EXECUTABLE_DIR "${BISON_EXECUTABLE_DIR}/data")
+
       add_custom_command(OUTPUT ${BISON_TARGET_outputs}
-        COMMAND ${BISON_EXECUTABLE} ${BISON_TARGET_cmdopt} -o ${BisonOutput} ${_BisonInput}
+        COMMAND  ${CMAKE_COMMAND} -E env BISON_PKGDATADIR=${BISON_EXECUTABLE_DIR} ${BISON_EXECUTABLE} ${BISON_TARGET_cmdopt} -o ${BisonOutput} ${_BisonInput}
         VERBATIM
         DEPENDS ${_BisonInput}
         COMMENT "[BISON][${Name}] Building parser with bison ${BISON_VERSION}"

@@ -16,9 +16,9 @@
 
 - 支持 `extern`（为了调用 `printf` 打印计算结果）
 
-以下是我们要支持的源码实例 [demo.xy](https://github.com/shdxiang/xy-compiler/blob/master/src/demo.xy)：
+以下是我们要支持的源码实例 [demo.xy](https://github.com/shdxiang/xy-compiler/blob/master/src/demo/demo.xy)：
 
-```
+```c
 extern printi(val)
 
 sum(a, b) {
@@ -47,29 +47,59 @@ printi(mult(4, 5) - sum(4, 5))
 
 ## 工具简介
 
-对应编译器工作步骤我们将使用以下工具，括号里标明了所使用的版本号：
+### 对应编译器工作步骤我们将使用以下工具，括号里标明了所使用的版本号：
 
-- **[Flex（2.6.0）](https://github.com/westes/flex):** Flex 是 Lex 开源替代品，他们都是 `词法分析器` 制作工具，它可以根据我们定义的规则生成 `词法分析器` 的代码；
+- **[Flex（2.6+）](https://github.com/westes/flex):** Flex 是 Lex 开源替代品，他们都是 `词法分析器` 制作工具，它可以根据我们定义的规则生成 `词法分析器` 的代码；
 
-- **[Bison（3.0.4）](https://www.gnu.org/software/bison/)：** Bison 是 `语法分析器` 的制作工具，同样它可以根据我们定义的规则生成 `语法分析器` 的代码；
+- **[Bison（3+）](https://www.gnu.org/software/bison/)：** Bison 是 `语法分析器` 的制作工具，同样它可以根据我们定义的规则生成 `语法分析器` 的代码；
 
-- **[LLVM（3.8.0）](http://llvm.org/)：** LLVM 是构架编译器的框架系统，我们会利用他来完成从 `抽象语法树` 生成目标码的过程。
+- **[LLVM（10+）](http://llvm.org/)：** LLVM 是构架编译器的框架系统，我们会利用他来完成从 `抽象语法树` 生成目标码的过程。
 
-在 ubuntu 上可以通过以下命令安装这些工具：
+- **[winflexbison](https://github.com/LonghronShen/winflexbison)：** 在Windows上使用从源码构建的基于CMake的Bison和Flex实现。
 
-```bash
-sudo apt-get install flex
-sudo apt-get install bison
-sudo apt-get install llvm-3.8*
-```
+- **[cmake（3.21+）](https://cmake.org)：** 本项目使用CMake实现跨平台构建。
+
+### 依赖项安装
+
+1. Linux
+
+    以 Ubuntu 为例，可以通过以下命令安装这些工具：
+
+    ```bash
+    apt-get update
+    apt-get install -y git build-essential flex bison llvm-10* libedit-dev zlib1g-dev python3-pip
+    pip3 install cmake
+    ```
+
+2. macOS
+
+    使用 **Homebrew** 安装依赖项：
+
+    ```bash
+    brew install llvm-12 cmake
+    ```
+
+3. Windows
+
+   - **CMake：**
+
+      使用官方下载页面的 [msi安装包](https://github.com/Kitware/CMake/releases/download/v3.21.2/cmake-3.21.2-windows-x86_64.msi) ，或者使用 **Visual Studio 2017+** 以上版本自带的CMake
+
+   - **Visual Studio：**
+
+      推荐使用2019以上版本
+
+   - **LLVM：**
+
+      使用预编译的 [LLVM包](https://ziglang.org/deps/llvm%2bclang%2blld-12.0.1-rc1-x86_64-windows-msvc-release-mt.tar.xz) ，或者使用 [vcpkg](https://github.com/microsoft/vcpkg) 安装
 
 介绍完工具，现在我们可以开始实现我们的编译器了。
 
 ## 词法分析器
 
-前面提到 `词法分析器` 要将源程序分解成 `单词`，我们的语法格式很简单，只包括：标识符，数字，数学运算符，括号和大括号等，我们将通过 Flex 来生成 `词法分析器` 的源码，给 Flex 使用的规则文件 [lexical.l](https://github.com/shdxiang/xy-compiler/blob/master/src/lexical.l) 如下：
+前面提到 `词法分析器` 要将源程序分解成 `单词`，我们的语法格式很简单，只包括：标识符，数字，数学运算符，括号和大括号等，我们将通过 Flex 来生成 `词法分析器` 的源码，给 Flex 使用的规则文件 [lexical.l](https://github.com/shdxiang/xy-compiler/blob/master/src/parser/lexical.l) 如下：
 
-```
+```c++
 %{
 #include <string>
 #include "ast.h"
@@ -115,7 +145,7 @@ sudo apt-get install llvm-3.8*
 
 现在我们可以通过调用 Flex 生成 `词法分析器` 的源码：
 
-```
+```bash
 flex -o lexical.cpp lexical.l
 ```
 
@@ -127,8 +157,9 @@ flex -o lexical.cpp lexical.l
 
 ![ast.mm.png](https://github.com/shdxiang/xy-compiler/blob/master/doc/ast.mm.png)
 
-现在我们使用 Bison 生成 `语法分析器` 代码，同样 Bison 需要一个规则文件，我们的规则文件 [syntactic.y](https://github.com/shdxiang/xy-compiler/blob/master/src/syntactic.y) 如下，限于篇幅，省略了某些部分，可以通过链接查看完整内容：
-```
+现在我们使用 Bison 生成 `语法分析器` 代码，同样 Bison 需要一个规则文件，我们的规则文件 [syntactic.y](https://github.com/shdxiang/xy-compiler/blob/master/src/parser/syntactic.y) 如下，限于篇幅，省略了某些部分，可以通过链接查看完整内容：
+
+```c++
 %{
     #include "ast.h"
     #include <cstdio>
@@ -159,18 +190,17 @@ func_decl:
 ...
 
 %%
-
 ```
 
 是不是发现和 Flex 的规则文件很像呢？确实是这样，它也是分 3 个部分组成，同样，第一部分的 C++ 代码会被复制到生成的源文件中，还可以看到这里通过以下这样的语法定义前面了 Flex 使用的宏：
 
-```
+```c++
 %token <token> TLPAREN TRPAREN TLBRACE TRBRACE TCOMMA
 ```
 
 比较不同的是第 2 部分，不像 Flex 通过 `正则表达式` 通过定义规则，这里使用的是 `巴科斯范式（BNF: Backus-Naur Form）` 的形式定义了我们识别的语法结构。如下的语法表示函数：
 
-```
+```c++
 func_decl:
   ident TLPAREN func_decl_args TRPAREN block { $$ = new NFunctionDeclaration(*$1, *$3, *$5); delete $3; }
 ;
@@ -183,17 +213,16 @@ func_decl:
 
 class NFunctionDeclaration : public NStatement {
 public:
-	const NIdentifier& id;
-	VariableList arguments;
-	NBlock& block;
-	NFunctionDeclaration(const NIdentifier& id,
-			const VariableList& arguments, NBlock& block) :
-		id(id), arguments(arguments), block(block) { }
-	virtual llvm::Value* codeGen(CodeGenContext& context);
+  const NIdentifier& id;
+  VariableList arguments;
+  NBlock& block;
+  NFunctionDeclaration(const NIdentifier& id,
+      const VariableList& arguments, NBlock& block) :
+    id(id), arguments(arguments), block(block) { }
+  virtual llvm::Value* codeGen(CodeGenContext& context);
 };
 
 ...
-
 ```
 
 可以看到，它有 `标识符（id）`，`参数列表（arguments）`，`函数体（block）` 这些成员，在语法分析阶段会设置好这些成员的内容供后面的 `目标码生成` 阶段使用。还可以看到有一个 `codeGen()` 虚函数，你可能猜到了，后面就是通过调用它来生成相应的目标代码。
@@ -232,9 +261,9 @@ Value *NMethodCall::codeGen(CodeGenContext &context) {
 
 看起来有点复杂，简单来说就是通过 LLVM 提供的接口来生成 `目标码`，需要了解更多的话可以去 LLVM 的官网学习一下。
 
-至此，我们所有的工作基本都做完了。简单回顾一下：我们先通过 Flex 生成 `词法分析器` 源码文件 `lexical.cpp`，然后通过 Bison 生成 `语法分析器` 源码文件 `syntactic.cpp` 和头文件 `syntactic.hpp`，我们自己编写了 `抽象语法树` 节点定义文件 [ast.h](https://github.com/shdxiang/xy-compiler/blob/master/src/gen.h) 和 `目标码` 生成文件 [ast.cpp](https://github.com/shdxiang/xy-compiler/blob/master/src/gen.cpp)，还有一个 [gen.h](https://github.com/shdxiang/xy-compiler/blob/master/src/gen.h) 包含一点 LLVM 环境相关的代码，为了输出我们程序的结果，还在 [printi.cpp](https://github.com/shdxiang/xy-compiler/blob/master/src/printi.cpp) 里简单的通过调用 C 语言库函数实现了输出一个整数。
+至此，我们所有的工作基本都做完了。简单回顾一下：我们先通过 Flex 生成 `词法分析器` 源码文件 `lexical.cpp`，然后通过 Bison 生成 `语法分析器` 源码文件 `syntactic.cpp` 和头文件 `syntactic.hpp`，我们自己编写了 `抽象语法树` 节点定义文件 [ast.h](https://github.com/shdxiang/xy-compiler/blob/master/src/parser/ast.h) 和 `目标码` 生成文件 [gen.cpp](https://github.com/shdxiang/xy-compiler/blob/master/src/compiler/gen.cpp)，还有一个 [gen.h](https://github.com/shdxiang/xy-compiler/blob/master/src/compiler/gen.h) 包含一点 LLVM 环境相关的代码，为了输出我们程序的结果，还在 [printi.cpp](https://github.com/shdxiang/xy-compiler/blob/master/src/runtime/implementation/system/console/printi.cpp) 里简单的通过调用 C 语言库函数实现了输出一个整数。
 
-对了，我们还需要一个 `main` 函数作为编译器的入口函数，它在 [main.cpp](https://github.com/shdxiang/xy-compiler/blob/master/src/main.cpp) 里：
+对了，我们还需要一个 `main` 函数作为编译器的入口函数，它在 [main.cpp](https://github.com/shdxiang/xy-compiler/blob/master/src/compiler/main.cpp) 里：
 
 ```c++
 
@@ -265,26 +294,24 @@ g++ -c `llvm-config --cppflags` -std=c++11 syntactic.cpp gen.cpp lexical.cpp pri
 g++ -o xy-complier syntactic.o gen.o main.o lexical.o printi.o `llvm-config --libs` `llvm-config --ldflags` -lpthread -ldl -lz -lncurses -rdynamic
 ```
 
-如果你下载了 [GitHub](https://github.com/shdxiang/xy-compiler) 的源码，那么直接：
+如果你下载了 [GitHub](https://github.com/shdxiang/xy-compiler) 的源码，那么直接在源码目录下：
+
 ```bash
-cd src
-make
+mkdir -p build
+cd build
+cmake ..
+cmake --build .
 ```
 
-就可以完成以上过程了，正常会生成一个二进制文件 `xy-complier`，它就是我们的编译器了。
+就可以完成以上过程了，正常会在 `./build/bin` 目录下生成一个二进制文件 `xy-complier`，它就是我们的编译器了。
 
 ## 编译测试
 
 我们使用之前提到实例 [demo.xy](https://github.com/shdxiang/xy-compiler/blob/master/src/demo.xy) 来测试，将其内容传给 `xy-complier` 的标准输入就可以看到运行结果了：
 
 ```bash
+cd ./build/bin
 cat demo.xy | ./xy-complier
-```
-
-也可以直接通过
-
-```bash
-make test
 ```
 
 来测试，输出如下：
@@ -322,31 +349,3 @@ Exiting...
 - [Writing Your Own Toy Compiler Using Flex, Bison and LLVM](http://gnuu.org/2009/09/18/writing-your-own-toy-compiler)
 
 - [Kaleidoscope: Implementing a Language with LLVM](http://llvm.org/docs/tutorial/index.html#kaleidoscope-implementing-a-language-with-llvm)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
