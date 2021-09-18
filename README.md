@@ -47,7 +47,7 @@ printi(mult(4, 5) - sum(4, 5))
 
 ## 工具简介
 
-### 对应编译器工作步骤我们将使用以下工具，括号里标明了所使用的版本号：
+### 对应编译器工作步骤我们将使用以下工具，括号里标明了所使用的版本号
 
 - **[Flex（2.6+）](https://github.com/westes/flex):** Flex 是 Lex 开源替代品，他们都是 `词法分析器` 制作工具，它可以根据我们定义的规则生成 `词法分析器` 的代码；
 
@@ -55,43 +55,43 @@ printi(mult(4, 5) - sum(4, 5))
 
 - **[LLVM（10+）](http://llvm.org/)：** LLVM 是构架编译器的框架系统，我们会利用他来完成从 `抽象语法树` 生成目标码的过程。
 
-- **[winflexbison](https://github.com/LonghronShen/winflexbison)：** 在Windows上使用从源码构建的基于CMake的Bison和Flex实现。
+- **[winflexbison](https://github.com/LonghronShen/winflexbison)：** 在 Windows 上使用从源码构建的基于 CMake 的 Bison 和 Flex 实现。
 
-- **[cmake（3.21+）](https://cmake.org)：** 本项目使用CMake实现跨平台构建。
+- **[cmake（3.21+）](https://cmake.org)：** 本项目使用 CMake 实现跨平台构建。
 
 ### 依赖项安装
 
 1. Linux
 
-    以 Ubuntu 为例，可以通过以下命令安装这些工具：
+   以 Ubuntu 为例，可以通过以下命令安装这些工具：
 
-    ```bash
-    apt-get update
-    apt-get install -y git build-essential flex bison llvm-10* libedit-dev zlib1g-dev python3-pip
-    pip3 install cmake
-    ```
+   ```bash
+   apt-get update
+   apt-get install -y git build-essential flex bison llvm-10* libedit-dev zlib1g-dev python3-pip
+   pip3 install cmake
+   ```
 
 2. macOS
 
-    使用 **Homebrew** 安装依赖项：
+   使用 **Homebrew** 安装依赖项：
 
-    ```bash
-    brew install llvm-12 cmake
-    ```
+   ```bash
+   brew install llvm-12 cmake
+   ```
 
 3. Windows
 
    - **CMake：**
 
-      使用官方下载页面的 [msi安装包](https://github.com/Kitware/CMake/releases/download/v3.21.2/cmake-3.21.2-windows-x86_64.msi) ，或者使用 **Visual Studio 2017+** 以上版本自带的CMake
+     使用官方下载页面的 [msi 安装包](https://github.com/Kitware/CMake/releases/download/v3.21.2/cmake-3.21.2-windows-x86_64.msi) ，或者使用 **Visual Studio 2017+** 以上版本自带的 CMake
 
    - **Visual Studio：**
 
-      推荐使用2019以上版本
+     推荐使用 2019 以上版本
 
    - **LLVM：**
 
-      使用预编译的 [LLVM包](https://ziglang.org/deps/llvm%2bclang%2blld-12.0.1-rc1-x86_64-windows-msvc-release-mt.tar.xz) ，或者使用 [vcpkg](https://github.com/microsoft/vcpkg) 安装
+     使用预编译的 [LLVM 包](https://ziglang.org/deps/llvm%2bclang%2blld-12.0.1-rc1-x86_64-windows-msvc-release-mt.tar.xz) ，或者使用 [vcpkg](https://github.com/microsoft/vcpkg) 安装
 
 介绍完工具，现在我们可以开始实现我们的编译器了。
 
@@ -149,7 +149,7 @@ printi(mult(4, 5) - sum(4, 5))
 flex -o lexical.cpp lexical.l
 ```
 
-生成的　lexical.cpp　里会有一个 `yylex()` 函数供　`语法分析器`　调用；你可能发现了，有些宏和变量并没有被定义（如 `TEXTERN`，`yylval`，`yytext` 等），其实有些是 Flex 会自动定义的内置变量（如 `yytext`），有些是后面 `语法分析器` 生成工具里定义的变量（如 `yylval`），我们后面会看到。
+生成的　 lexical.cpp 　里会有一个 `yylex()` 函数供　`语法分析器`　调用；你可能发现了，有些宏和变量并没有被定义（如 `TEXTERN`，`yylval`，`yytext` 等），其实有些是 Flex 会自动定义的内置变量（如 `yytext`），有些是后面 `语法分析器` 生成工具里定义的变量（如 `yylval`），我们后面会看到。
 
 ## 语法分析器
 
@@ -307,7 +307,7 @@ cmake --build .
 
 ## 编译测试
 
-我们使用之前提到实例 [demo.xy](https://github.com/shdxiang/xy-compiler/blob/master/src/demo.xy) 来测试，将其内容传给 `xy-complier` 的标准输入就可以看到运行结果了：
+我们使用之前提到实例 [demo.xy](https://github.com/shdxiang/xy-compiler/blob/master/src/demo/demo.xy) 来测试，将其内容传给 `xy-complier` 的标准输入就可以看到运行结果了：
 
 ```bash
 cd ./build/bin
