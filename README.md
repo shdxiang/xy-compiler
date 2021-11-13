@@ -16,7 +16,7 @@
 
 - 支持 `extern`（为了调用 `printf` 打印计算结果）
 
-以下是我们要支持的源码实例 [demo.xy](https://github.com/shdxiang/xy-compiler/blob/master/src/demo/demo.xy)：
+以下是我们要支持的源码实例 [demo.xy](src/demo/demo.xy)：
 
 ```c
 extern printi(val)
@@ -97,7 +97,7 @@ printi(mult(4, 5) - sum(4, 5))
 
 ## 词法分析器
 
-前面提到 `词法分析器` 要将源程序分解成 `单词`，我们的语法格式很简单，只包括：标识符，数字，数学运算符，括号和大括号等，我们将通过 Flex 来生成 `词法分析器` 的源码，给 Flex 使用的规则文件 [lexical.l](https://github.com/shdxiang/xy-compiler/blob/master/src/parser/lexical.l) 如下：
+前面提到 `词法分析器` 要将源程序分解成 `单词`，我们的语法格式很简单，只包括：标识符，数字，数学运算符，括号和大括号等，我们将通过 Flex 来生成 `词法分析器` 的源码，给 Flex 使用的规则文件 [lexical.l](src/parser/lexical.l) 如下：
 
 ```c++
 %{
@@ -155,9 +155,9 @@ flex -o lexical.cpp lexical.l
 
 `语法分析器` 的作用是构建 `抽象语法树`，通俗的说 `抽象语法树` 就是将源码用树状结构来表示，每个节点都代表源码中的一种结构；对于我们要实现的语法，其语法树是很简单的，如下：
 
-![ast.mm.png](https://github.com/shdxiang/xy-compiler/blob/master/doc/ast.mm.png)
+![ast.mm.png](doc/ast.mm.png)
 
-现在我们使用 Bison 生成 `语法分析器` 代码，同样 Bison 需要一个规则文件，我们的规则文件 [syntactic.y](https://github.com/shdxiang/xy-compiler/blob/master/src/parser/syntactic.y) 如下，限于篇幅，省略了某些部分，可以通过链接查看完整内容：
+现在我们使用 Bison 生成 `语法分析器` 代码，同样 Bison 需要一个规则文件，我们的规则文件 [syntactic.y](src/parser/syntactic.y) 如下，限于篇幅，省略了某些部分，可以通过链接查看完整内容：
 
 ```c++
 %{
@@ -206,7 +206,7 @@ func_decl:
 ;
 ```
 
-可以看到后面大括号中间的也是 `动作` 代码，上例的动作是在 `抽象语法树` 中生成一个函数的节点，其实这部分的其他规则也是生成相应类型的节点到语法树中。像 `NFunctionDeclaration` 这是一个我们自己定义的节点类，我们在 [ast.h](https://github.com/shdxiang/xy-compiler/blob/master/src/ast.h) 中定义了我们所要用到的节点，同样的，我们摘取一段代码如下：
+可以看到后面大括号中间的也是 `动作` 代码，上例的动作是在 `抽象语法树` 中生成一个函数的节点，其实这部分的其他规则也是生成相应类型的节点到语法树中。像 `NFunctionDeclaration` 这是一个我们自己定义的节点类，我们在 [ast.h](src/parser/ast.h) 中定义了我们所要用到的节点，同样的，我们摘取一段代码如下：
 
 ```c++
 ...
@@ -235,7 +235,7 @@ bison -d -o syntactic.cpp syntactic.y
 
 ## 目标码生成
 
-这是最后一步了，这一步的主角是前面提到 LLVM，LLVM 是一个构建编译器的框架系统，我们使用他遍历 `语法分析` 阶段生成的 `抽象语法树`，然后为每个节点生成相应的 `目标码`。当然，无法避免的是我们需要使用 LLVM 提供的函数来编写生成目标码的源码，就是实现前面提到的虚函数 `codeGen()`，是不是有点拗口？不过确实是这样。我们在 [gen.cpp](https://github.com/shdxiang/xy-compiler/blob/master/src/gen.cpp) 中编写了不同节点的生成代码，我们摘取一段看一下：
+这是最后一步了，这一步的主角是前面提到 LLVM，LLVM 是一个构建编译器的框架系统，我们使用他遍历 `语法分析` 阶段生成的 `抽象语法树`，然后为每个节点生成相应的 `目标码`。当然，无法避免的是我们需要使用 LLVM 提供的函数来编写生成目标码的源码，就是实现前面提到的虚函数 `codeGen()`，是不是有点拗口？不过确实是这样。我们在 [gen.cpp](src/gen.cpp) 中编写了不同节点的生成代码，我们摘取一段看一下：
 
 ```c++
 ...
@@ -261,9 +261,9 @@ Value *NMethodCall::codeGen(CodeGenContext &context) {
 
 看起来有点复杂，简单来说就是通过 LLVM 提供的接口来生成 `目标码`，需要了解更多的话可以去 LLVM 的官网学习一下。
 
-至此，我们所有的工作基本都做完了。简单回顾一下：我们先通过 Flex 生成 `词法分析器` 源码文件 `lexical.cpp`，然后通过 Bison 生成 `语法分析器` 源码文件 `syntactic.cpp` 和头文件 `syntactic.hpp`，我们自己编写了 `抽象语法树` 节点定义文件 [ast.h](https://github.com/shdxiang/xy-compiler/blob/master/src/parser/ast.h) 和 `目标码` 生成文件 [gen.cpp](https://github.com/shdxiang/xy-compiler/blob/master/src/compiler/gen.cpp)，还有一个 [gen.h](https://github.com/shdxiang/xy-compiler/blob/master/src/compiler/gen.h) 包含一点 LLVM 环境相关的代码，为了输出我们程序的结果，还在 [printi.cpp](https://github.com/shdxiang/xy-compiler/blob/master/src/runtime/implementation/system/console/printi.cpp) 里简单的通过调用 C 语言库函数实现了输出一个整数。
+至此，我们所有的工作基本都做完了。简单回顾一下：我们先通过 Flex 生成 `词法分析器` 源码文件 `lexical.cpp`，然后通过 Bison 生成 `语法分析器` 源码文件 `syntactic.cpp` 和头文件 `syntactic.hpp`，我们自己编写了 `抽象语法树` 节点定义文件 [ast.h](src/parser/ast.h) 和 `目标码` 生成文件 [gen.cpp](src/compiler/gen.cpp)，还有一个 [gen.h](src/compiler/gen.h) 包含一点 LLVM 环境相关的代码，为了输出我们程序的结果，还在 [printi.cpp](src/runtime/implementation/system/console/printi.cpp) 里简单的通过调用 C 语言库函数实现了输出一个整数。
 
-对了，我们还需要一个 `main` 函数作为编译器的入口函数，它在 [main.cpp](https://github.com/shdxiang/xy-compiler/blob/master/src/compiler/main.cpp) 里：
+对了，我们还需要一个 `main` 函数作为编译器的入口函数，它在 [main.cpp](src/compiler/main.cpp) 里：
 
 ```c++
 
@@ -307,7 +307,7 @@ cmake --build .
 
 ## 编译测试
 
-我们使用之前提到实例 [demo.xy](https://github.com/shdxiang/xy-compiler/blob/master/src/demo/demo.xy) 来测试，将其内容传给 `xy-complier` 的标准输入就可以看到运行结果了：
+我们使用之前提到实例 [demo.xy](src/demo/demo.xy) 来测试，将其内容传给 `xy-complier` 的标准输入就可以看到运行结果了：
 
 ```bash
 cd ./build/bin
