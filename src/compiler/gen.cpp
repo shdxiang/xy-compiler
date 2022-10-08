@@ -79,7 +79,7 @@ Value *NIdentifier::codeGen(CodeGenContext &context) {
     context.locals()[name] = alloc;
   }
 
-#if LLVM_VERSION_MAJOR == 12
+#if LLVM_VERSION_MAJOR >= 12
   const auto &local = context.locals()[name];
   return new LoadInst(cast<PointerType>(local->getType())->getElementType(),
                       local, llvm::Twine(""), false, context.currentBlock());
