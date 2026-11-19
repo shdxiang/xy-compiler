@@ -1,24 +1,27 @@
 # xy-compiler
 
-Toy compiler: Flex lexer (`src/lexical.l`), Bison parser (`src/syntactic.y`), AST
-(`src/ast.h`), LLVM code generation and MCJIT (`src/gen.h`, `src/gen.cpp`), command line
-entry (`src/main.cpp`) and the runtime functions programs can call (`src/runtime.cpp`).
-Everything builds into one executable from the root `CMakeLists.txt`. README.md (Chinese) is
-both the tutorial and the reference; keep its code snippets in sync with the sources.
+The Flex lexer and Bison parser build an AST. The compiler lowers it to LLVM IR
+and executes it with MCJIT. The [Chinese tutorial](README.md) includes a
+[source map](README.md#项目结构); keep its examples in sync with the implementation.
 
 ## Commands
 
-- Configure: `cmake -S . -B build -G Ninja [-DLLVM_DIR=/usr/lib/llvm-18/lib/cmake/llvm]`
-- Build: `cmake --build build`
-- Test: `ctest --test-dir build --output-on-failure`
-- Format: `git ls-files '*.cpp' '*.h' | xargs clang-format -i` (CI checks with clang-format-18 `--dry-run --Werror`)
+Run from the repository root:
+
+```bash
+cmake -S . -B build
+cmake --build build
+ctest --test-dir build --output-on-failure
+```
+
+To select a specific LLVM installation, add `-DLLVM_DIR=/usr/lib/llvm-18/lib/cmake/llvm`
+to the configure command, adjusting the path as needed. Use LLVM 14 or later.
+On Windows, run the Linux commands inside WSL; native builds are unsupported.
 
 ## Conventions
 
-- The grammar must stay conflict-free: bison runs with `-Werror=conflicts-sr -Werror=conflicts-rr`.
-- Tests are `tests/cases/*.xy` with `// expect-stdout:`, `// expect-stderr:`, `// expect-exit:` comments
-  (see `tests/run_test.cmake`). Re-run CMake configure after adding a case. CLI tests are in `CMakeLists.txt`.
-- Source errors are reported as `line N: error: ...` with exit code 1; semantic errors throw `CodeGenError`.
-- A new runtime function goes in `src/runtime.cpp` (`extern "C"`, `long long` arguments and result)
-  and must be registered with `DynamicLibrary::AddSymbol` in `src/main.cpp`.
-- Supported LLVM: 14+ (verified on 17 and 21). On Windows, build inside WSL using the Linux instructions; native Windows builds are unsupported.
+- **Grammar:** Keep the Bison grammar free of shift/reduce and reduce/reduce conflicts. The build treats both as errors.
+- **Tests:** Add language cases under `tests/cases/` with the [expected-output directives](README.md#测试). Define CLI tests in the root `CMakeLists.txt`.
+- **Diagnostics:** Report source errors on stderr with a line number and exit code 1. Use `CodeGenError` for semantic errors.
+- **Runtime:** Define new functions in `src/runtime.cpp` with C linkage and `long long` parameters and result. Register each function with `DynamicLibrary::AddSymbol` in `src/main.cpp`.
+- **Formatting:** Run `git ls-files '*.cpp' '*.h' | xargs clang-format -i`. CI checks formatting with `clang-format-18`.
