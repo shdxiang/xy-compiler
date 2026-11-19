@@ -1,12 +1,12 @@
 # 实现一个简单的编译器
 
-简单的说 `编译器` 就是语言翻译器，它一般将高级语言翻译成更低级的语言，如 GCC 可将 C/C++ 语言翻译成可执行机器语言，Java 编译器可以将 Java 源代码翻译成 Java 虚拟机可以执行的字节码。
+简单地说，**编译器**就是语言翻译器：它把高级语言翻译成更低级的语言，例如 GCC 把 C/C++ 翻译成机器码，Java 编译器把 Java 源代码翻译成 Java 虚拟机执行的字节码。
 
-编译器如此神奇，那么它到底是如何工作的呢？本文将简单介绍编译器的原理，并实现一个简单的编译器，使它能编译我们自定义语法格式的源代码。（文中使用的源码都已上传至 [GitHub](https://github.com/shdxiang/xy-compiler) 以方便查看）。
+编译器是如何工作的呢？本文先简单介绍编译器的原理，然后用 Flex、Bison 和 LLVM 实现一个简单的编译器 `xy-compiler`，让它能编译并运行我们自定义的语言。
 
 ## 快速开始
 
-安装好[依赖项](#依赖项安装)后，在源码目录下执行：
+安装好[依赖项](#安装依赖项)后，在源码目录下执行：
 
 ```bash
 cmake -S . -B build
@@ -19,32 +19,28 @@ ctest --test-dir build --output-on-failure  # 运行测试
 
 - [自定义语法](#自定义语法)
 - [编译原理简介](#编译原理简介)
-- [工具简介](#工具简介)
+- [工具和依赖项](#工具和依赖项)
 - [词法分析器](#词法分析器)
 - [语法分析器](#语法分析器)
 - [目标码生成](#目标码生成)
+- [构建](#构建)
 - [编译测试](#编译测试)
 - 附录：[命令行用法](#命令行用法) · [语言参考](#语言参考) · [项目结构](#项目结构) · [开发](#开发)
 
 ## 自定义语法
 
-为了简洁易懂，我们的编译器将只支持以下简单功能：
+为了简洁易懂，我们的语言只支持以下功能：
 
-- 数据类型只支持整型（64 位有符号整数），这样不需要数据类型符；
-
-- 支持 `加（+）`，`减（-）`，`乘（*）`，`除（/）` 运算；
-
-- 支持 `等于（==）`，`不等于（!=）` 比较运算，结果为 `1` 或 `0`；
-
-- 支持变量赋值（`x = 1`）、函数定义和函数调用；
-
-- 支持 `extern` 声明外部函数（为了调用运行时库中的 `printi` 打印计算结果）；
-
-- 支持 `//` 单行注释。
+- 数据类型只有整型（64 位有符号整数），所以不需要类型声明；
+- 加（`+`）、减（`-`）、乘（`*`）、除（`/`）运算；
+- 等于（`==`）、不等于（`!=`）比较运算，结果为 `1` 或 `0`；
+- 变量赋值（`x = 1`）、函数定义和函数调用；
+- 用 `extern` 声明外部函数（用来调用运行时库中的 `printi` 打印计算结果）；
+- `//` 单行注释。
 
 完整的语法和语义说明见附录[语言参考](#语言参考)。
 
-以下是我们要支持的源码实例 [demo.xy](src/demo/demo.xy)：
+下面是一个示例程序 [demo.xy](src/demo/demo.xy)，它会打印 `4 * 5 - (4 + 5)` 的结果 `11`：
 
 ```c
 extern printi(val)
@@ -64,31 +60,24 @@ printi(mult(4, 5) - sum(4, 5))
 
 一般编译器有以下工作步骤：
 
-1. **词法分析（Lexical analysis）：** 此阶段的任务是从左到右一个字符一个字符地读入源程序，对构成源程序的字符流进行扫描然后根据构词规则识别 `单词（Token）`，完成这个任务的组件是 `词法分析器（Lexical analyzer，简称Lexer）`，也叫 `扫描器（Scanner）`；
+1. **词法分析（Lexical analysis）：** 此阶段的任务是从左到右一个字符一个字符地读入源程序，对构成源程序的字符流进行扫描然后根据构词规则识别**单词**（Token），完成这个任务的组件是**词法分析器**（Lexical analyzer，简称 Lexer），也叫**扫描器**（Scanner）；
 
-1. **语法分析（Syntactic analysis，也叫 Parsing）：** 此阶段的主要任务是由 `词法分析器` 生成的单词构建 `抽象语法树（Abstract Syntax Tree ，AST）`，完成此任务的组件是 `语法分析器（Parser）`；
+1. **语法分析（Syntactic analysis，也叫 Parsing）：** 此阶段的主要任务是由词法分析器生成的单词构建**抽象语法树**（Abstract Syntax Tree，AST），完成此任务的组件是**语法分析器**（Parser）；
 
-1. **目标码生成：** 此阶段编译器会遍历上一步生成的抽象语法树，然后为每个节点生成 `机器 / 字节码`。
+1. **目标码生成：** 此阶段编译器会遍历上一步生成的抽象语法树，然后为每个节点生成机器码或字节码。
 
-编译器完成编译后，由 `链接器（Linker）` 将生成的目标文件链接成可执行文件，这一步并不是必须的，一些依赖于虚拟机运行的语言（如 Java，Erlang）就不需要链接。
+编译器完成编译后，由**链接器**（Linker）将生成的目标文件链接成可执行文件，这一步并不是必须的，一些依赖于虚拟机运行的语言（如 Java，Erlang）就不需要链接。
 
-## 工具简介
+## 工具和依赖项
 
-### 使用的工具
+对应编译器的工作步骤，我们使用以下工具，括号里是所需的版本：
 
-对应编译器的工作步骤，我们将使用以下工具，括号里标明了所需的版本：
+- **[Flex（2.6+）](https://github.com/westes/flex)：** Lex 的开源替代品，它根据我们定义的规则生成词法分析器的代码；
+- **[Bison（3+）](https://www.gnu.org/software/bison/)：** 同样，它根据我们定义的规则生成语法分析器的代码；
+- **[LLVM（14+）](https://llvm.org/)：** 构建编译器的框架，我们用它从抽象语法树生成目标码，并通过 JIT 运行；
+- **[CMake（3.21+）](https://cmake.org)：** 跨平台的构建工具。
 
-- **[Flex（2.6+）](https://github.com/westes/flex)：** Flex 是 Lex 的开源替代品，它们都是 `词法分析器` 制作工具，它可以根据我们定义的规则生成 `词法分析器` 的代码；
-
-- **[Bison（3+）](https://www.gnu.org/software/bison/)：** Bison 是 `语法分析器` 的制作工具，同样它可以根据我们定义的规则生成 `语法分析器` 的代码；
-
-- **[LLVM（14+）](http://llvm.org/)：** LLVM 是构建编译器的框架系统，我们会利用它来完成从 `抽象语法树` 生成目标码的过程。
-
-- **[winflexbison](https://github.com/LonghronShen/winflexbison)：** 在 Windows 上使用从源码构建的基于 CMake 的 Bison 和 Flex 实现。
-
-- **[CMake（3.21+）](https://cmake.org)：** 本项目使用 CMake 实现跨平台构建。
-
-### 依赖项安装
+### 安装依赖项
 
 1. Linux
 
@@ -118,25 +107,17 @@ printi(mult(4, 5) - sum(4, 5))
 
 3. Windows
 
-   Flex 和 Bison 不需要单独安装，构建时会自动下载并编译 [winflexbison](https://github.com/LonghronShen/winflexbison)。
+   - **Visual Studio：** 推荐使用 2022 版，它自带满足要求的 CMake，也可以从 [CMake 官网](https://cmake.org/download/)单独下载；
+   - **LLVM：** 使用 [vcpkg](https://github.com/microsoft/vcpkg) 安装（`vcpkg install llvm`），或者自行编译；
+   - **Flex 和 Bison：** 不需要单独安装，构建时会自动下载并编译 [winflexbison](https://github.com/LonghronShen/winflexbison)。
 
-   - **CMake：**
-
-     使用官方下载页面的 [msi 安装包](https://github.com/Kitware/CMake/releases/download/v3.21.2/cmake-3.21.2-windows-x86_64.msi)，或者使用 **Visual Studio 2017** 及以上版本自带的 CMake
-
-   - **Visual Studio：**
-
-     推荐使用 2019 及以上版本
-
-   - **LLVM：**
-
-     使用预编译的 [LLVM 包](https://ziglang.org/deps/llvm%2bclang%2blld-12.0.1-rc1-x86_64-windows-msvc-release-mt.tar.xz)，或者使用 [vcpkg](https://github.com/microsoft/vcpkg) 安装
+   注意持续集成只覆盖了 Linux，Windows 上的构建没有经过测试。
 
 介绍完工具，现在我们可以开始实现我们的编译器了。
 
 ## 词法分析器
 
-前面提到 `词法分析器` 要将源程序分解成 `单词`，我们的语法格式很简单，只包括：标识符，数字，数学运算符，括号和大括号等，我们将通过 Flex 来生成 `词法分析器` 的源码，给 Flex 使用的规则文件 [lexical.l](src/parser/lexical.l) 如下：
+前面提到词法分析器要将源程序分解成单词。我们的语法很简单，单词只有标识符、数字、运算符、括号和大括号等几种。我们通过 Flex 来生成词法分析器的源码，Flex 使用的规则文件 [lexical.l](src/parser/lexical.l) 如下：
 
 ```lex
 %{
@@ -181,19 +162,23 @@ printi(mult(4, 5) - sum(4, 5))
 
 ```
 
-我们来解释一下，这个文件被 2 个 `%%` 分成 3 部分，第 1 部分用 `%{` 与 `%}` 包括的是一些 C++ 代码，会被原样复制到 Flex 生成的源码文件中，还可以在这里指定一些选项，如我们使用了 `%option noyywrap`（不需要 `yywrap()` 函数）和 `yylineno`（记录行号，用于报错），也可以在这定义宏供后面使用；第 2 部分用来定义构成单词的规则，可以看到每条规则都是一个 `正则表达式` 和 `动作`，很直白，就是 `词法分析器` 发现了匹配的 `单词` 后执行相应的 `动作` 代码，大部分只要返回 `单词` 给调用者就可以了；第 3 部分可以定义一些函数，也会原样复制到生成的源码中去，这里我们留空没有使用。遇到无法识别的字符时，我们返回 `TINVALID`，让 `语法分析器` 报告语法错误并停止编译。
+这个文件被 2 个 `%%` 分成 3 部分：
 
-现在我们可以通过调用 Flex 生成 `词法分析器` 的源码：
+1. 第 1 部分中 `%{` 与 `%}` 之间的 C++ 代码会被原样复制到 Flex 生成的源文件中，这里还可以定义宏和指定选项，如 `%option noyywrap`（不需要 `yywrap()` 函数）和 `yylineno`（记录行号，用于报错）；
+2. 第 2 部分定义构成单词的规则，每条规则都是一个正则表达式和一段动作代码：词法分析器匹配到单词后执行相应的动作，大部分动作只是把单词返回给调用者。遇到无法识别的字符时，我们返回 `TINVALID`，让语法分析器报告语法错误并停止编译；
+3. 第 3 部分可以定义一些函数，同样会被原样复制到生成的源文件中，这里我们没有用到。
+
+现在我们可以通过调用 Flex 生成词法分析器的源码：
 
 ```bash
 flex -o lexical.cpp lexical.l
 ```
 
-生成的 `lexical.cpp` 里会有一个 `yylex()` 函数供 `语法分析器` 调用；你可能发现了，有些宏和变量并没有被定义（如 `TEXTERN`，`yylval`，`yytext` 等），其实有些是 Flex 会自动定义的内置变量（如 `yytext`），有些是后面 `语法分析器` 生成工具里定义的变量（如 `yylval`），我们后面会看到。
+生成的 `lexical.cpp` 里有一个 `yylex()` 函数供语法分析器调用。你可能发现了，有些宏和变量（如 `TEXTERN`、`yylval`、`yytext`）并没有定义：其中 `yytext` 是 Flex 自动定义的内置变量，`TEXTERN` 和 `yylval` 则来自后面 Bison 生成的头文件。
 
 ## 语法分析器
 
-`语法分析器` 的作用是构建 `抽象语法树`，通俗的说 `抽象语法树` 就是将源码用树状结构来表示，每个节点都代表源码中的一种结构；对于我们要实现的语法，语法树的节点类型很简单，它们都定义在 [ast.h](src/parser/ast.h) 中，继承关系如下：
+语法分析器的作用是构建抽象语法树，通俗地说，抽象语法树就是用树状结构来表示源码，每个节点都代表源码中的一种结构；对于我们要实现的语法，语法树的节点类型很简单，它们都定义在 [ast.h](src/parser/ast.h) 中，继承关系如下：
 
 ```mermaid
 flowchart LR
@@ -230,7 +215,7 @@ flowchart LR
     style statements fill:none,stroke:#43a047,stroke-dasharray:5 5
 ```
 
-现在我们使用 Bison 生成 `语法分析器` 代码，同样 Bison 需要一个规则文件 [syntactic.y](src/parser/syntactic.y)。是不是发现和 Flex 的规则文件很像呢？确实是这样，它也由 `%%` 分隔的 3 个部分组成，下面我们分别摘取每个部分的代码看一下，完整内容可以通过链接查看。
+现在我们使用 Bison 生成语法分析器代码，同样 Bison 需要一个规则文件 [syntactic.y](src/parser/syntactic.y)。是不是发现和 Flex 的规则文件很像呢？确实是这样，它也由 `%%` 分隔的 3 个部分组成，下面我们分别摘取每个部分的代码看一下，完整内容可以通过链接查看。
 
 第 1 部分是声明。`%code` 块中的 C++ 代码会被原样复制到生成的源文件中；`%union` 列出了分析过程中各个符号的值可能的类型；`%token` 则定义了前面 Flex 使用的单词（如 `TLPAREN`）：
 
@@ -276,7 +261,7 @@ flowchart LR
 
 最后两行解决了一个歧义：语句之间没有分隔符，`f (x)` 既可以理解成调用 `f(x)`，也可以理解成变量 `f` 后面跟着一个表达式 `(x)`，这里规定标识符后面跟 `(` 时总是函数调用。
 
-第 2 部分是语法规则。不像 Flex 通过 `正则表达式` 定义规则，这里使用的是 `巴科斯范式（BNF: Backus-Naur Form）` 的形式定义了我们识别的语法结构。例如程序由一系列语句组成，语句有 4 种：
+第 2 部分是语法规则。不像 Flex 通过正则表达式定义规则，这里使用的是巴科斯范式（BNF，Backus-Naur Form）的形式定义了我们识别的语法结构。例如程序由一系列语句组成，语句有 4 种：
 
 ```yacc
 program:
@@ -296,7 +281,7 @@ stmt:
 ;
 ```
 
-规则后面大括号中间的是 `动作` 代码，`$$` 表示规则左边符号的值，`$1`、`$2` 等依次表示右边各个符号的值。上面的动作就是在 `抽象语法树` 中生成相应的节点。再看看表示函数定义的规则：
+规则后面大括号中间的是动作代码，`$$` 表示规则左边符号的值，`$1`、`$2` 等依次表示右边各个符号的值。上面的动作就是在抽象语法树中生成相应的节点。再看看表示函数定义的规则：
 
 ```yacc
 /* The parameter list is parsed as call_args so the parser does not have to
@@ -315,7 +300,7 @@ func_decl:
 ;
 ```
 
-注意这里的参数列表用的是和函数调用相同的 `call_args`：`语法分析器` 只向前看一个单词，读到 `f(a` 时还无法判断这是函数定义还是函数调用 `f(a)`，要等到看见 `{` 才能确定，所以先统一按调用参数解析，确认是函数定义后再用第 1 部分 `%code` 块中定义的 `toParameters` 检查每个参数都是标识符：
+注意这里的参数列表用的是和函数调用相同的 `call_args`：语法分析器只向前看一个单词，读到 `f(a` 时还无法判断这是函数定义还是函数调用 `f(a)`，要等到看见 `{` 才能确定，所以先统一按调用参数解析，确认是函数定义后再用第 1 部分 `%code` 块中定义的 `toParameters` 检查每个参数都是标识符：
 
 ```c++
 /* Function parameters are parsed like call arguments (see func_decl);
@@ -335,7 +320,7 @@ static bool toParameters(ExpressionList &args, VariableList &params) {
 
 构建时 Bison 若发现语法规则有冲突（也就是有歧义）会直接报错。
 
-第 3 部分是 `yyerror` 函数，`语法分析器` 遇到语法错误时会调用它，我们在错误信息中加上了行号和出错位置的单词：
+第 3 部分是 `yyerror` 函数，语法分析器遇到语法错误时会调用它，我们在错误信息中加上了行号和出错位置的单词：
 
 ```c++
 void yyerror(const char *s) {
@@ -377,9 +362,9 @@ public:
 };
 ```
 
-可以看到，它有 `标识符（id）`，`参数列表（arguments）`，`函数体（block）` 这些成员（用 `std::unique_ptr` 持有，节点释放时子节点也随之释放），在语法分析阶段会设置好这些成员的内容供后面的 `目标码生成` 阶段使用。还可以看到每个节点都有一个 `codeGen()` 虚函数，你可能猜到了，后面就是通过调用它来生成相应的目标代码。
+可以看到，它有标识符（`id`），参数列表（`arguments`），函数体（`block`）这些成员（用 `std::unique_ptr` 持有，节点释放时子节点也随之释放），在语法分析阶段会设置好这些成员的内容供后面的目标码生成阶段使用。还可以看到每个节点都有一个 `codeGen()` 虚函数，你可能猜到了，后面就是通过调用它来生成相应的目标代码。
 
-我们可以通过以下命令调用 Bison 生成 `语法分析器` 的源码文件，这里我们使用 `-d` 使头文件和源文件分开，因为前面 `词法分析器` 的源码使用了这里定义的一些宏，所以需要使用这个头文件，这里将会生成 `syntactic.cpp` 和 `syntactic.hpp`：
+我们可以通过以下命令调用 Bison 生成语法分析器的源码。`-d` 表示额外生成一个头文件，前面的词法分析器需要用到其中定义的单词，所以这里会生成 `syntactic.cpp` 和 `syntactic.hpp` 两个文件：
 
 ```bash
 bison -d -o syntactic.cpp syntactic.y
@@ -387,7 +372,7 @@ bison -d -o syntactic.cpp syntactic.y
 
 ## 目标码生成
 
-这是最后一步了，这一步的主角是前面提到 LLVM，LLVM 是一个构建编译器的框架系统，我们使用它遍历 `语法分析` 阶段生成的 `抽象语法树`，然后为每个节点生成相应的 `目标码`。当然，无法避免的是我们需要使用 LLVM 提供的函数来编写生成目标码的源码，就是实现前面提到的虚函数 `codeGen()`，是不是有点拗口？不过确实是这样。我们在 [gen.cpp](src/compiler/gen.cpp) 中编写了不同节点的生成代码，例如函数调用节点的生成代码：
+最后一步是生成目标码，主角是 LLVM。我们遍历语法分析阶段生成的抽象语法树，为每种节点实现前面提到的虚函数 `codeGen()`，在其中调用 LLVM 的接口生成相应的目标码（LLVM IR）。这些代码都在 [gen.cpp](src/compiler/gen.cpp) 中，例如函数调用节点的生成代码：
 
 ```c++
 Value *NMethodCall::codeGen(CodeGenContext &context) {
@@ -410,11 +395,11 @@ Value *NMethodCall::codeGen(CodeGenContext &context) {
 }
 ```
 
-看起来有点复杂，简单来说就是通过 LLVM 提供的 `IRBuilder` 接口来生成 `目标码`；遇到调用不存在的函数、参数个数不对、使用未赋值的变量等错误时，会抛出带行号的 `CodeGenError`。生成完毕后还会用 LLVM 的 `verifyModule` 检查生成的代码是否合法。需要了解更多的话可以去 LLVM 的官网学习一下。
+它先查找被调用的函数并检查参数个数，然后从左到右生成每个参数的代码，最后通过 LLVM 提供的 `IRBuilder` 生成调用指令。遇到调用不存在的函数、参数个数不对、使用未赋值的变量等错误时，会抛出带行号的 `CodeGenError`。生成完毕后还会用 LLVM 的 `verifyModule` 检查生成的代码是否合法。想了解更多 LLVM 的用法，可以参考 LLVM 官方的 [Kaleidoscope 教程](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/index.html)。
 
-至此，我们所有的工作基本都做完了。简单回顾一下：我们先通过 Flex 生成 `词法分析器` 源码文件 `lexical.cpp`，然后通过 Bison 生成 `语法分析器` 源码文件 `syntactic.cpp` 和头文件 `syntactic.hpp`，我们自己编写了 `抽象语法树` 节点定义文件 [ast.h](src/parser/ast.h) 和 `目标码` 生成文件 [gen.cpp](src/compiler/gen.cpp)，还有一个 [gen.h](src/compiler/gen.h) 包含一点 LLVM 环境相关的代码，为了输出我们程序的结果，还在 [printi.cpp](src/runtime/implementation/system/console/printi.cpp) 里简单的通过调用 C 语言库函数实现了输出一个整数（我们语言中的函数都返回整数，所以它返回传入的值）。
+简单回顾一下：Flex 生成词法分析器的源文件 `lexical.cpp`，Bison 生成语法分析器的源文件 `syntactic.cpp` 和头文件 `syntactic.hpp`；我们自己编写了抽象语法树的节点定义 [ast.h](src/parser/ast.h)、代码生成的上下文 [gen.h](src/compiler/gen.h) 和各节点的代码生成 [gen.cpp](src/compiler/gen.cpp)。为了输出程序的结果，运行时库中的 [printi.cpp](src/runtime/implementation/system/console/printi.cpp) 调用 C 语言库函数实现了打印一个整数（我们语言中的函数都返回整数，所以它返回传入的值）。
 
-对了，我们还需要一个 `main` 函数作为编译器的入口函数，它在 [main.cpp](src/compiler/main.cpp) 里。`main` 函数解析命令行参数、打开输入文件后，调用 `compileAndRun` 完成编译和运行：
+最后还需要一个 `main` 函数作为编译器的入口，它在 [main.cpp](src/compiler/main.cpp) 里。`main` 函数解析命令行参数、打开输入文件后，调用 `compileAndRun` 完成编译和运行：
 
 ```c++
 /* Parse the program from yyin, compile it, then run it with the JIT */
@@ -464,25 +449,18 @@ static int compileAndRun(const cxxopts::ParseResult &args) {
 }
 ```
 
-我们可以看到其调用了 `yyparse()` 做 `语法分析`（`yyparse()` 内部会先调用 `yylex()` 做 `词法分析`）；然后是一系列的 LLVM 初始化代码，`context.generateCode(*program)` 开始生成 `目标码`；最后是 `context.runCode()` 来运行代码，这里使用了 LLVM 的 `JIT（Just In Time）` 来直接运行代码，没有链接的过程。顶层的 `return` 语句的值会作为进程的退出码。
+我们可以看到其调用了 `yyparse()` 做语法分析（`yyparse()` 内部会先调用 `yylex()` 做词法分析）；然后是一系列的 LLVM 初始化代码，`context.generateCode(*program)` 开始生成目标码；最后是 `context.runCode()` 来运行代码，这里使用了 LLVM 的 `JIT（Just In Time）` 来直接运行代码，没有链接的过程。顶层的 `return` 语句的值会作为进程的退出码。
 
-现在我们可以用这些文件生成我们的编译器了，需要说明一下，因为 `词法分析器` 的源码使用了一些 `语法分析器` 头文件中的宏，所以正确的生成顺序是这样的：
+## 构建
 
-```bash
-bison -d -o syntactic.cpp syntactic.y
-flex -o lexical.cpp lexical.l
-```
-
-然后将生成的源文件和其他源文件一起编译，并链接 LLVM 库。具体的编译选项比较繁琐，我们交给 CMake 处理。如果你下载了 [GitHub](https://github.com/shdxiang/xy-compiler) 的源码，那么直接在源码目录下：
+CMake 会按正确的顺序完成所有步骤：先用 Bison 生成 `syntactic.cpp` 和 `syntactic.hpp`（词法分析器要用到其中定义的单词），再用 Flex 生成 `lexical.cpp`，最后把它们和其他源文件一起编译并链接 LLVM 库。在源码目录下执行：
 
 ```bash
 cmake -S . -B build
 cmake --build build
 ```
 
-就可以完成以上过程了。如果安装了多个版本的 LLVM，可以通过 `-DLLVM_DIR=/usr/lib/llvm-18/lib/cmake/llvm` 这样的参数指定使用哪一个。正常会在 `./build/bin` 目录下生成一个二进制文件 `xy-compiler`，它就是我们的编译器了。
-
-运行测试的方法见附录[开发](#开发)。
+构建完成后会在 `build/bin` 目录下生成编译器 `xy-compiler`。如果安装了多个版本的 LLVM，可以通过 `-DLLVM_DIR=/usr/lib/llvm-18/lib/cmake/llvm` 这样的参数指定使用哪一个，其他构建选项和运行测试的方法见附录[开发](#开发)。
 
 ## 编译测试
 
@@ -496,11 +474,11 @@ cat demo.xy | ./xy-compiler
 
 输出如下：
 
-```bash
+```text
 11
 ```
 
-可以看到正确输出了期望的结果。我们还可以查看生成的 LLVM IR（其他选项见附录[命令行用法](#命令行用法)）：
+可以看到正确输出了期望的结果。我们还可以查看生成的 LLVM IR（其他选项见附录[命令行用法](#命令行用法)），其中每个函数的参数先被存入栈上的变量（`alloca`），使用时再读出来（`load`）：
 
 ```bash
 ./xy-compiler --no-run -o - demo.xy
@@ -553,7 +531,7 @@ $ echo 'printi(1)' | ./xy-compiler
 line 1: error: call to undefined function 'printi'
 ```
 
-至此我们简单的编译器就完成了。
+至此，我们简单的编译器就完成了。
 
 ## 命令行用法
 
@@ -700,13 +678,10 @@ scripts/format.sh --check  # 只检查，CI 中会运行
 
 ## 参考
 
-- [Writing an Interpreter with Lex, Yacc, and Memphis](http://memphis.compilertools.net/interpreter.html)
-
-- [Lex & Yacc Tutorial](http://epaperpress.com/lexandyacc/)
-
-- [Writing Your Own Toy Compiler Using Flex, Bison and LLVM](http://gnuu.org/2009/09/18/writing-your-own-toy-compiler)
-
-- [Kaleidoscope: Implementing a Language with LLVM](http://llvm.org/docs/tutorial/index.html#kaleidoscope-implementing-a-language-with-llvm)
+- [Writing an Interpreter with Lex, Yacc, and Memphis](https://web.archive.org/web/20211209035751/http://memphis.compilertools.net/interpreter.html)（存档）
+- [Lex & Yacc Tutorial](https://www.epaperpress.com/lexandyacc/)
+- [Writing Your Own Toy Compiler Using Flex, Bison and LLVM](https://gnuu.org/2009/09/18/writing-your-own-toy-compiler/)
+- [My First Language Frontend with LLVM Tutorial（Kaleidoscope）](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/index.html)
 
 ## 许可证
 
