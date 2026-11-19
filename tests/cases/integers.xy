@@ -1,9 +1,0 @@
-// expect-stdout: 9223372036854775807
-// expect-stdout: 0
-// expect-stdout: -3
-extern printi(val)
-extern printi(val)
-
-printi(9223372036854775807)
-printi(0)
-printi(0 - 7 / 2)

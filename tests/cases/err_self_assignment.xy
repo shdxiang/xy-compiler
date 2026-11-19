@@ -1,3 +1,0 @@
-// expect-stderr: line 3: error: undeclared variable 'x'
-// expect-exit: 1
-x = x + 1

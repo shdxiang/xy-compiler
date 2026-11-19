@@ -22,3 +22,17 @@ outer(x) {
 }
 
 printi(outer(10))
+
+// A call with variable arguments must not be parsed as a declaration.
+// expect-stdout: 4
+// expect-stdout: 9
+// expect-stdout: 5
+sum(a, b) {
+  return a + b
+}
+
+x = 4
+y = 5
+printi(x)
+printi(sum(x, y))
+printi(y)

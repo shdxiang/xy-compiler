@@ -15,3 +15,22 @@ a = b = 3
 printi(a + b)
 printi(c = 7)
 printi(3 - 10)
+
+// expect-stdout: 1
+// expect-stdout: 0
+// expect-stdout: 0
+// expect-stdout: 1
+// expect-stdout: 1
+printi(1 == 1)
+printi(1 == 2)
+printi(3 != 3)
+printi(3 != 4)
+printi(2 + 3 == 5)
+
+// expect-stdout: 9223372036854775807
+// expect-stdout: 0
+// expect-stdout: -3
+extern printi(val)
+printi(9223372036854775807)
+printi(0)
+printi(0 - 7 / 2)

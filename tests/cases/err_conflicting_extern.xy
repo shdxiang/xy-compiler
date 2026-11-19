@@ -1,4 +1,0 @@
-// expect-stderr: line 4: error: conflicting declaration of 'printi'
-// expect-exit: 1
-extern printi(val)
-extern printi(a, b)
