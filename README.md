@@ -196,19 +196,38 @@ flex -o lexical.cpp lexical.l
 `语法分析器` 的作用是构建 `抽象语法树`，通俗的说 `抽象语法树` 就是将源码用树状结构来表示，每个节点都代表源码中的一种结构；对于我们要实现的语法，语法树的节点类型很简单，它们都定义在 [ast.h](src/parser/ast.h) 中，继承关系如下：
 
 ```mermaid
-graph LR
-    Node --- NExpression
-    Node --- NStatement
-    NExpression --- NInteger
-    NExpression --- NIdentifier
-    NExpression --- NMethodCall
-    NExpression --- NBinaryOperator
-    NExpression --- NAssignment
-    NExpression --- NBlock
-    NStatement --- NExpressionStatement
-    NStatement --- NReturnStatement
-    NStatement --- NExternDeclaration
-    NStatement --- NFunctionDeclaration
+flowchart LR
+    Node(["Node"]) --> NExpression(["NExpression"]) & NStatement(["NStatement"])
+
+    subgraph expressions [表达式]
+        direction TB
+        NInteger["NInteger<br/>42"]
+        NIdentifier["NIdentifier<br/>x"]
+        NMethodCall["NMethodCall<br/>f(a, b)"]
+        NBinaryOperator["NBinaryOperator<br/>a + b"]
+        NAssignment["NAssignment<br/>x = 1"]
+        NBlock["NBlock<br/>{ ... }"]
+    end
+
+    subgraph statements [语句]
+        direction TB
+        NExpressionStatement["NExpressionStatement<br/>f(1)"]
+        NReturnStatement["NReturnStatement<br/>return x"]
+        NExternDeclaration["NExternDeclaration<br/>extern f(a)"]
+        NFunctionDeclaration["NFunctionDeclaration<br/>f(a) { ... }"]
+    end
+
+    NExpression --> NInteger & NIdentifier & NMethodCall & NBinaryOperator & NAssignment & NBlock
+    NStatement --> NExpressionStatement & NReturnStatement & NExternDeclaration & NFunctionDeclaration
+
+    classDef base fill:#ede7f6,stroke:#5e35b1,stroke-width:2px,color:#311b92
+    classDef expr fill:#e3f2fd,stroke:#1e88e5,color:#0d47a1
+    classDef stmt fill:#e8f5e9,stroke:#43a047,color:#1b5e20
+    class Node,NExpression,NStatement base
+    class NInteger,NIdentifier,NMethodCall,NBinaryOperator,NAssignment,NBlock expr
+    class NExpressionStatement,NReturnStatement,NExternDeclaration,NFunctionDeclaration stmt
+    style expressions fill:none,stroke:#1e88e5,stroke-dasharray:5 5
+    style statements fill:none,stroke:#43a047,stroke-dasharray:5 5
 ```
 
 现在我们使用 Bison 生成 `语法分析器` 代码，同样 Bison 需要一个规则文件，我们的规则文件 [syntactic.y](src/parser/syntactic.y) 如下，限于篇幅，省略了某些部分，可以通过链接查看完整内容：
