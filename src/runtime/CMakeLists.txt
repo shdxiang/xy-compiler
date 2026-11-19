@@ -38,17 +38,4 @@ generate_export_header(${project_name}
 
 target_include_directories(${project_name}
     PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/include
-    PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include/public
-    PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include/private)
-
-# ----------------------------------------
-add_library(${project_name}-static STATIC
-    ${src})
-
-target_compile_definitions(${project_name}-static
-    PUBLIC XY_RT_STATIC_DEFINE)
-
-target_include_directories(${project_name}-static
-    PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/include
-    PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include/public
-    PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include/private)
+    PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include/public)
