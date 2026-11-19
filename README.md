@@ -193,9 +193,23 @@ flex -o lexical.cpp lexical.l
 
 ## 语法分析器
 
-`语法分析器` 的作用是构建 `抽象语法树`，通俗的说 `抽象语法树` 就是将源码用树状结构来表示，每个节点都代表源码中的一种结构；对于我们要实现的语法，其语法树是很简单的，如下：
+`语法分析器` 的作用是构建 `抽象语法树`，通俗的说 `抽象语法树` 就是将源码用树状结构来表示，每个节点都代表源码中的一种结构；对于我们要实现的语法，语法树的节点类型很简单，它们都定义在 [ast.h](src/parser/ast.h) 中，继承关系如下：
 
-![ast.mm.png](doc/ast.mm.png)
+```mermaid
+graph LR
+    Node --- NExpression
+    Node --- NStatement
+    NExpression --- NInteger
+    NExpression --- NIdentifier
+    NExpression --- NMethodCall
+    NExpression --- NBinaryOperator
+    NExpression --- NAssignment
+    NExpression --- NBlock
+    NStatement --- NExpressionStatement
+    NStatement --- NReturnStatement
+    NStatement --- NExternDeclaration
+    NStatement --- NFunctionDeclaration
+```
 
 现在我们使用 Bison 生成 `语法分析器` 代码，同样 Bison 需要一个规则文件，我们的规则文件 [syntactic.y](src/parser/syntactic.y) 如下，限于篇幅，省略了某些部分，可以通过链接查看完整内容：
 
@@ -530,7 +544,6 @@ xy-compiler [选项] [文件]
 | [external/InitializeExternalComponents.cmake](external/InitializeExternalComponents.cmake) | 查找或下载依赖项（LLVM、cxxopts，以及 Windows 上的 winflexbison） |
 | [cmake](cmake) | CMake 模块 |
 | [scripts](scripts) | 安装依赖项（`bootstrap.sh`）和格式化代码（`format.sh`）的脚本 |
-| [doc](doc) | 抽象语法树示意图 |
 
 ## 开发
 
