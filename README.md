@@ -76,7 +76,7 @@ printi(mult(4, 5) - sum(4, 5))
    brew install llvm cmake flex bison
    ```
 
-   macOS 自带的 Bison 版本太旧，配置时需要告诉 CMake 使用 Homebrew 安装的 Bison、Flex 和 LLVM：
+   本项目需要 Bison 3.0 或更高版本。为避免使用 macOS 自带的旧版 Bison，配置时将 Homebrew 安装的 Bison、Flex 和 LLVM 加入 CMake 的搜索路径：
 
    ```bash
    cmake -S . -B build -DCMAKE_PREFIX_PATH="$(brew --prefix bison);$(brew --prefix flex);$(brew --prefix llvm)"
