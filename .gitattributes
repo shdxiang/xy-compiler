@@ -1,2 +1,0 @@
-# Keep the Windows line endings this test checks
-tests/cases/crlf_and_comments.xy -text

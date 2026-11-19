@@ -84,8 +84,8 @@ printi(mult(4, 5) - sum(4, 5))
    以 Ubuntu 为例，可以通过以下命令安装这些工具：
 
    ```bash
-   apt-get update
-   apt-get install -y git build-essential cmake ninja-build flex bison llvm-dev \
+   sudo apt-get update
+   sudo apt-get install -y git build-essential cmake ninja-build flex bison llvm-dev \
        zlib1g-dev libzstd-dev libedit-dev libxml2-dev libffi-dev libncurses-dev
    ```
 
@@ -103,13 +103,7 @@ printi(mult(4, 5) - sum(4, 5))
    cmake -S . -B build -DCMAKE_PREFIX_PATH="$(brew --prefix bison);$(brew --prefix flex);$(brew --prefix llvm)"
    ```
 
-3. Windows
-
-   - **Visual Studio：** 推荐使用 2022 版，它自带满足要求的 CMake，也可以从 [CMake 官网](https://cmake.org/download/)单独下载；
-   - **LLVM：** 使用 [vcpkg](https://github.com/microsoft/vcpkg) 安装（`vcpkg install llvm`），或者自行编译；
-   - **Flex 和 Bison：** 安装 [winflexbison](https://github.com/lexxmark/winflexbison)（如 `choco install winflexbison3`），并确保 `win_flex` 和 `win_bison` 在 `PATH` 中。
-
-   注意持续集成只覆盖了 Linux，Windows 上的构建没有经过测试。
+3. Windows：不支持原生构建。在管理员 PowerShell 中运行 `wsl --install -d Ubuntu` 安装 WSL，然后打开 Ubuntu 终端，按上面的 Linux 步骤安装依赖项并执行[快速开始](#快速开始)中的命令。
 
 介绍完工具，现在我们可以开始实现我们的编译器了。
 
@@ -127,7 +121,7 @@ printi(mult(4, 5) - sum(4, 5))
 #define TOKEN(t)    (yylval.token = t)
 %}
 
-%option noyywrap nounput noinput yylineno nounistd never-interactive
+%option noyywrap nounput noinput yylineno
 
 %%
 

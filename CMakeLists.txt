@@ -16,11 +16,7 @@ if(CCACHE_PROGRAM)
     set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
 endif()
 
-if(MSVC)
-    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
-else()
-    add_compile_options(-Wall)
-endif()
+add_compile_options(-Wall)
 
 # ---- Dependencies ----
 

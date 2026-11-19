@@ -21,4 +21,4 @@ both the tutorial and the reference; keep its code snippets in sync with the sou
 - Source errors are reported as `line N: error: ...` with exit code 1; semantic errors throw `CodeGenError`.
 - A new runtime function goes in `src/runtime.cpp` (`extern "C"`, `long long` arguments and result)
   and must be registered with `DynamicLibrary::AddSymbol` in `src/main.cpp`.
-- Supported LLVM: 14+ (verified on 17 and 21). Windows is not covered by CI.
+- Supported LLVM: 14+ (verified on 17 and 21). On Windows, build inside WSL using the Linux instructions; native Windows builds are unsupported.
