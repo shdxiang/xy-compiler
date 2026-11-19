@@ -1,74 +1,70 @@
-// #include <llvm/Bitcode/ReaderWriter.h>
-// #include <llvm/ExecutionEngine/ExecutionEngine.h>
-#include <llvm/ExecutionEngine/GenericValue.h>
-#include <llvm/ExecutionEngine/MCJIT.h>
-#include <llvm/IR/CallingConv.h>
-#include <llvm/IR/DerivedTypes.h>
-#include <llvm/IR/Function.h>
+#ifndef C7B2E5A0_3F4D_4E8B_9A61_2D5C8F0B1E37
+#define C7B2E5A0_3F4D_4E8B_9A61_2D5C8F0B1E37
+
+#include <cstdint>
+#include <map>
+#include <memory>
+#include <stdexcept>
+#include <string>
+
 #include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/IRPrintingPasses.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
-#include <llvm/IR/PassManager.h>
-#include <llvm/IR/Type.h>
-#include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
-#include <stack>
-#include <typeinfo>
-
-using namespace llvm;
-
-extern LLVMContext TheContext;
-
-inline LLVMContext &getGlobalContext() { return TheContext; }
 
 class NBlock;
 
-class CodeGenBlock {
+/* A semantic error in the source program, reported with its line number */
+class CodeGenError : public std::runtime_error {
 public:
-  BasicBlock *block;
-
-  Value *returnValue;
-  std::map<std::string, Value *> locals;
+  int line;
+  CodeGenError(int line, const std::string &message)
+      : std::runtime_error(message), line(line) {}
 };
 
 class CodeGenContext {
-private:
-  std::stack<CodeGenBlock *> blocks;
-  Function *mainFunction;
-
 public:
-  Module *module;
+  llvm::LLVMContext llvmContext;
+  std::unique_ptr<llvm::Module> module;
+  llvm::IRBuilder<> builder;
+  /* Variables of the function currently being generated */
+  std::map<std::string, llvm::AllocaInst *> locals;
+  bool verbose;
 
-public:
-  CodeGenContext() { module = new Module("main", getGlobalContext()); }
+  explicit CodeGenContext(bool verbose = false);
 
+  /* Compile the AST into the module; throws CodeGenError */
   void generateCode(NBlock &root);
 
-  GenericValue runCode();
+  void printIR(llvm::raw_ostream &out) const;
 
-  inline std::map<std::string, Value *> &locals() {
-    return blocks.top()->locals;
+  /* JIT-compile the module and run it, returning the program's return value.
+     The module is handed over to the JIT, so this can only be called once. */
+  int64_t runCode();
+
+  llvm::Type *intType() { return builder.getInt64Ty(); }
+
+  /* Create a stack slot for a variable in the entry block of the current
+     function */
+  llvm::AllocaInst *createLocal(const std::string &name,
+                                const std::string &irName = "");
+
+  /* Terminate the current block if needed and verify the function */
+  void finishFunction(llvm::Function *function);
+
+  bool isEntryFunction(const llvm::Function *function) const {
+    return function == mainFunction;
   }
 
-  inline BasicBlock *currentBlock() { return blocks.top()->block; }
-
-  inline void pushBlock(BasicBlock *block) {
-    blocks.push(new CodeGenBlock());
-    blocks.top()->returnValue = NULL;
-    blocks.top()->block = block;
+  void trace(const std::string &message) const {
+    if (verbose) {
+      llvm::errs() << message << "\n";
+    }
   }
 
-  inline void popBlock() {
-    CodeGenBlock *top = blocks.top();
-    blocks.pop();
-    delete top;
-  }
-
-  inline void setCurrentReturnValue(Value *value) {
-    blocks.top()->returnValue = value;
-  }
-
-  inline Value *getCurrentReturnValue() { return blocks.top()->returnValue; }
+private:
+  llvm::Function *mainFunction = nullptr;
 };
+
+#endif /* C7B2E5A0_3F4D_4E8B_9A61_2D5C8F0B1E37 */

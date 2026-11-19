@@ -1,0 +1,12 @@
+// expect-stdout: 1
+// expect-stdout: 0
+// expect-stdout: 0
+// expect-stdout: 1
+// expect-stdout: 1
+extern printi(val)
+
+printi(1 == 1)
+printi(1 == 2)
+printi(3 != 3)
+printi(3 != 4)
+printi(2 + 3 == 5)

@@ -1,0 +1,20 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+
+[*.{cpp,h,hpp,in,l,y}]
+indent_size = 2
+
+[{CMakeLists.txt,*.cmake}]
+indent_size = 4
+
+[*.{yml,yaml}]
+indent_size = 2
+
+[tests/cases/crlf_and_comments.xy]
+end_of_line = crlf

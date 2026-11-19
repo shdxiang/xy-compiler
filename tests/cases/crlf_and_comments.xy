@@ -1,0 +1,5 @@
+// Windows line endings and comments are accepted.
+// expect-stdout: 3
+extern printi(val) // trailing comment
+
+printi(1 + 2)

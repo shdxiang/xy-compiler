@@ -1,0 +1,5 @@
+// expect-stderr: line 3: error: duplicate parameter 'a' in 'f'
+// expect-exit: 1
+f(a, a) {
+  return a
+}

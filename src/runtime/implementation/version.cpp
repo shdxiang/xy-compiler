@@ -1,13 +1,12 @@
-#include <string.h>
-#include <string>
+#include <cstring>
 
 #include <libxy/version.h>
 
 LIB_XY_EXPORTS int get_libxy_version(char *buffer, int buffer_size) {
-  const auto verLength = strlen(LIBXY_VER);
-  if (buffer_size < verLength) {
-    return verLength;
+  const int required = static_cast<int>(std::strlen(LIBXY_VER)) + 1;
+  if (buffer == nullptr || buffer_size < required) {
+    return required;
   }
-  strcpy(buffer, LIBXY_VER);
+  std::memcpy(buffer, LIBXY_VER, required);
   return 0;
 }

@@ -1,0 +1,4 @@
+// expect-stderr: line 3: error: redefinition of 'main'
+// expect-exit: 1
+main() {
+}

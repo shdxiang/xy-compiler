@@ -1,0 +1,16 @@
+// Calls whose arguments are plain variables used to be parsed as the start
+// of a function declaration.
+// expect-stdout: 4
+// expect-stdout: 9
+// expect-stdout: 5
+extern printi(val)
+
+sum(a, b) {
+  return a + b
+}
+
+x = 4
+y = 5
+printi(x)
+printi(sum(x, y))
+printi(y)

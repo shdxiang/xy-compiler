@@ -1,0 +1,17 @@
+// expect-stdout: 14
+// expect-stdout: 20
+// expect-stdout: 3
+// expect-stdout: 2
+// expect-stdout: 6
+// expect-stdout: 7
+// expect-stdout: -7
+extern printi(val)
+
+printi(2 + 3 * 4)
+printi((2 + 3) * 4)
+printi(10 - 4 - 3)
+printi(20 / 2 / 5)
+a = b = 3
+printi(a + b)
+printi(c = 7)
+printi(3 - 10)

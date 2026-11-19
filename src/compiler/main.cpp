@@ -1,15 +1,16 @@
-#if defined(__STDC_LIB_EXT1__)
-#define __STDC_WANT_LIB_EXT1__ 1
-#endif
-
+#include <cerrno>
 #include <cstdio>
-#include <cstdlib>
-#include <iomanip>
+#include <cstring>
 #include <iostream>
+#include <memory>
+#include <system_error>
 
 #include <cxxopts.hpp>
 
 #include <llvm/Support/DynamicLibrary.h>
+#include <llvm/Support/FileSystem.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Support/raw_ostream.h>
 
 #include <libxy/version.h>
 
@@ -18,78 +19,121 @@
 
 #include "version.hpp"
 
-using namespace std;
-
-extern FILE *yyin, *yyout;
+extern FILE *yyin;
+extern int yydebug;
 
 extern int yyparse();
 
 extern NBlock *programBlock;
 
+static bool writeIR(const CodeGenContext &context, const std::string &path) {
+  if (path == "-") {
+    context.printIR(llvm::outs());
+    return true;
+  }
+  std::error_code error;
+  llvm::raw_fd_ostream out(path, error, llvm::sys::fs::OF_None);
+  if (error) {
+    std::cerr << "error: cannot open output file '" << path
+              << "': " << error.message() << std::endl;
+    return false;
+  }
+  context.printIR(out);
+  return true;
+}
+
 int main(int argc, char **argv) {
-  cxxopts::Options options("The xy Language Compiler",
-                           "A toy complier based on LLVM JIT.");
-  options.add_options()("d,debug", "Enable debugging")(
-      "f,file", "Input file name", cxxopts::value<std::string>())(
-      "o,output", "Output file name", cxxopts::value<std::string>())(
-      "v,verbose", "Verbose output",
-      cxxopts::value<bool>()->default_value("false"))("h,help", "Print usage")(
-      "version", "Print version");
+  cxxopts::Options options("xy-compiler", "A toy compiler based on LLVM JIT.");
+  options.positional_help("[file]").show_positional_help();
+  // clang-format off
+  options.add_options()
+      ("d,debug", "Print the parser trace")
+      ("f,file", "Input file name (default: standard input)",
+       cxxopts::value<std::string>())
+      ("o,output", "Write the generated LLVM IR to a file ('-' for stdout)",
+       cxxopts::value<std::string>())
+      ("n,no-run", "Only compile, do not run the program")
+      ("v,verbose", "Print code generation steps")
+      ("h,help", "Print usage")
+      ("version", "Print version");
+  // clang-format on
+  options.parse_positional({"file"});
 
-  const auto &result = options.parse(argc, argv);
+  std::unique_ptr<cxxopts::ParseResult> result;
+  try {
+    result = std::make_unique<cxxopts::ParseResult>(options.parse(argc, argv));
+  } catch (const std::exception &ex) {
+    std::cerr << "error: " << ex.what() << std::endl;
+    return 2;
+  }
+  const auto &args = *result;
 
-  if (result.count("help")) {
+  if (args.count("help")) {
     std::cout << options.help() << std::endl;
     return 0;
   }
-  if (result.count("version")) {
+  if (args.count("version")) {
     std::cout << "Version: " << VER << std::endl;
     char buffer[256];
-    if (get_libxy_version(buffer, sizeof(buffer)) > 0) {
-      std::cout << "failed to get libxy version." << std::endl;
+    if (get_libxy_version(buffer, sizeof(buffer)) != 0) {
+      std::cerr << "failed to get libxy version." << std::endl;
       return 1;
     }
     std::cout << "libxy version: " << buffer << std::endl;
     return 0;
   }
-  if (result.count("file")) {
-    const auto &inputFilePath = result["file"].as<std::string>();
-#if defined(__STDC_LIB_EXT1__) || defined(_MSC_VER)
-    fopen_s(&yyin, inputFilePath.c_str(), "r");
-#else
-    yyin = fopen(inputFilePath.c_str(), "r");
-#endif
-  }
-  if (result.count("output")) {
-    auto outputFilePath = result["output"].as<std::string>();
-#if defined(__STDC_LIB_EXT1__) || defined(_MSC_VER)
-    fopen_s(&yyout, outputFilePath.c_str(), "w");
-#else
-    yyout = fopen(outputFilePath.c_str(), "w");
-#endif
+
+  yyin = stdin;
+  if (args.count("file")) {
+    const auto &inputFilePath = args["file"].as<std::string>();
+    yyin = std::fopen(inputFilePath.c_str(), "r");
+    if (!yyin) {
+      std::cerr << "error: cannot open input file '" << inputFilePath
+                << "': " << std::strerror(errno) << std::endl;
+      return 1;
+    }
   }
 
-  yyparse();
+  yydebug = args.count("debug") ? 1 : 0;
+  int parseResult = yyparse();
+  if (yyin != stdin) {
+    std::fclose(yyin);
+  }
+  if (parseResult != 0 || !programBlock) {
+    return 1;
+  }
+  std::unique_ptr<NBlock> program(programBlock);
+  programBlock = nullptr;
 
-  std::cout << std::boolalpha
-            << "Parsing succedded: " << (programBlock != nullptr) << std::endl;
+  llvm::InitializeNativeTarget();
+  llvm::InitializeNativeTargetAsmPrinter();
+  llvm::InitializeNativeTargetAsmParser();
 
+  CodeGenContext context(args.count("verbose") > 0);
+  try {
+    context.generateCode(*program);
+  } catch (const CodeGenError &ex) {
+    std::cerr << "line " << ex.line << ": error: " << ex.what() << std::endl;
+    return 1;
+  } catch (const std::exception &ex) {
+    std::cerr << "internal error: " << ex.what() << std::endl;
+    return 1;
+  }
+
+  if (args.count("output") &&
+      !writeIR(context, args["output"].as<std::string>())) {
+    return 1;
+  }
+  if (args.count("no-run")) {
+    return 0;
+  }
+
+  /* Make the symbols of this process (including libxy) visible to the JIT */
   llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
-
-  InitializeNativeTarget();
-  InitializeNativeTargetAsmPrinter();
-  InitializeNativeTargetAsmParser();
-
-  CodeGenContext context;
-  context.generateCode(*programBlock);
-  context.runCode();
-
-  delete programBlock;
-
-  std::cout << "Exiting..." << std::endl;
-
-  fclose(yyin);
-  fclose(yyout);
-
-  return 0;
+  try {
+    return static_cast<int>(context.runCode());
+  } catch (const std::exception &ex) {
+    std::cerr << "error: " << ex.what() << std::endl;
+    return 1;
+  }
 }

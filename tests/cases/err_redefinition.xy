@@ -1,0 +1,6 @@
+// expect-stderr: line 5: error: redefinition of 'f'
+// expect-exit: 1
+f() {
+}
+f() {
+}

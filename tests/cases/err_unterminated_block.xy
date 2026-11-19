@@ -1,0 +1,4 @@
+// expect-stderr: line 5: error: syntax error, unexpected end of file
+// expect-exit: 1
+f(a) {
+  return a

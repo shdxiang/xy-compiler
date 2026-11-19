@@ -1,0 +1,3 @@
+// expect-stderr: line 3: error: call to undefined function 'foo'
+// expect-exit: 1
+foo(1)

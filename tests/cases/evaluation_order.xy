@@ -1,0 +1,23 @@
+// Operands and arguments are evaluated left to right.
+// expect-stdout: 1
+// expect-stdout: 2
+// expect-stdout: -1
+// expect-stdout: 3
+// expect-stdout: 4
+// expect-stdout: 7
+extern printi(val)
+
+one() {
+  return printi(1)
+}
+
+two() {
+  return printi(2)
+}
+
+sum(a, b) {
+  return a + b
+}
+
+printi(one() - two())
+printi(sum(printi(3), printi(4)))

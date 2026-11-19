@@ -7,11 +7,12 @@
 #define TOKEN(t)    (yylval.token = t)
 %}
 
-%option noyywrap
+%option noyywrap nounput noinput yylineno
 
 %%
 
-[ \t\n]                 ;
+[ \t\r\n]               ;
+"//".*                  ;
 "extern"                return TOKEN(TEXTERN);
 "return"                return TOKEN(TRETURN);
 [a-zA-Z_][a-zA-Z0-9_]*  SAVE_TOKEN; return TIDENTIFIER;
@@ -33,6 +34,6 @@
 "*"                     return TOKEN(TMUL);
 "/"                     return TOKEN(TDIV);
 
-.                       printf("Unknown token!\n"); yyterminate();
+.                       return TOKEN(TINVALID);
 
 %%

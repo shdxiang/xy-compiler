@@ -1,0 +1,19 @@
+// A function without return returns 0, code after a return is not run, and
+// a top level return sets the exit code.
+// expect-stdout: 0
+// expect-stdout: 5
+// expect-exit: 3
+extern printi(val)
+
+nothing() {
+}
+
+early(x) {
+  return x
+  printi(99)
+}
+
+printi(nothing())
+printi(early(5))
+return 3
+printi(42)

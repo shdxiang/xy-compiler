@@ -1,0 +1,24 @@
+// Each function has its own variables, and parameters are copies.
+// expect-stdout: 11
+// expect-stdout: 1
+// expect-stdout: 30
+extern printi(val)
+
+a = 1
+
+addten(a) {
+  a = a + 10
+  return a
+}
+
+printi(addten(a))
+printi(a)
+
+outer(x) {
+  inner(y) {
+    return y * 3
+  }
+  return inner(x)
+}
+
+printi(outer(10))

@@ -9,24 +9,24 @@ include(FetchContent)
 find_package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
-message(STATUS "Linking with: ${LLVM_DEFINITIONS}")
+message(STATUS "LLVM definitions: ${LLVM_DEFINITIONS}")
 
-include_directories(${LLVM_INCLUDE_DIRS})
-add_definitions(${LLVM_DEFINITIONS})
+include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
+separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
+add_definitions(${LLVM_DEFINITIONS_LIST})
 
-llvm_map_components_to_libnames(llvm_libs core support mcparser option bitreader profiledata irreader executionengine mcjit native)
+llvm_map_components_to_libnames(llvm_libs core support executionengine mcjit native)
 message(STATUS "Linking with: ${llvm_libs}")
 
-# cxxopts
+# cxxopts (header only, so its CMakeLists.txt is not added)
 FetchContent_Declare(cxxopts
-  GIT_REPOSITORY https://github.com/jarro2783/cxxopts.git
-  GIT_TAG 5f43f4cbfee5d92560ece7811a2a44c763f9fb73)
+    GIT_REPOSITORY https://github.com/jarro2783/cxxopts.git
+    GIT_TAG 44380e5a44706ab7347f400698c703eb2a196202 # v3.3.1
+    SOURCE_SUBDIR do-not-add-subdirectory)
+FetchContent_MakeAvailable(cxxopts)
 
-FetchContent_GetProperties(cxxopts)
-if(NOT cxxopts_POPULATED)
-  FetchContent_Populate(cxxopts)
-  add_subdirectory(${cxxopts_SOURCE_DIR} ${cxxopts_BINARY_DIR} EXCLUDE_FROM_ALL)
-endif()
+add_library(cxxopts INTERFACE)
+target_include_directories(cxxopts SYSTEM INTERFACE ${cxxopts_SOURCE_DIR}/include)
 
 
 if(WIN32)
@@ -34,7 +34,7 @@ if(WIN32)
     FetchContent_Declare(winflexbision
         GIT_REPOSITORY https://github.com/LonghronShen/winflexbison.git
         # GIT_REPOSITORY https://github.com/lexxmark/winflexbison.git
-        GIT_TAG master)
+        GIT_TAG ac5a33055c2c5e10914a8a5169e102a1fb1d2fc1)
 
     FetchContent_GetProperties(winflexbision)
     if(NOT winflexbision_POPULATED)

@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-LIB_XY_EXPORTS void printi(long long val);
+LIB_XY_EXPORTS long long printi(long long val);
 
 #ifdef __cplusplus
 }

@@ -2,49 +2,19 @@ cmake_minimum_required(VERSION 3.14)
 
 project(xy-compiler C CXX)
 
-include_directories(
-    "${CMAKE_CURRENT_BINARY_DIR}/"
-    "${CMAKE_CURRENT_LIST_DIR}/"
-)
-
-if(WIN32)
-    execute_process(
-        COMMAND CMD /c "git describe --tags --always --dirty" 
-        OUTPUT_VARIABLE VER 
-        WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
-elseif(UNIX)
-    execute_process(
-        COMMAND git describe --tags --always --dirty 
-        OUTPUT_VARIABLE VER 
-        WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
-    if(APPLE)
-        execute_process(COMMAND sw_vers -productVersion OUTPUT_VARIABLE MACOSX_DEPLOYMENT_TARGET)
-        string(REGEX REPLACE "\n$" "" MACOSX_DEPLOYMENT_TARGET "${MACOSX_DEPLOYMENT_TARGET}")
-        message(STATUS "MACOSX_DEPLOYMENT_TARGET: ${MACOSX_DEPLOYMENT_TARGET}")
-    endif()
-else()
-    message(fatal "Unsupported platform detected.")
-endif()
-
-string(REGEX REPLACE "\n$" "" VER "${VER}")
-message(STATUS "xy-compiler version: ${VER}")
-
 configure_file(version.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/version.hpp")
 
-file(GLOB_RECURSE COMPILER_SRC
-    ${CMAKE_CURRENT_LIST_DIR}/*.c
-    ${CMAKE_CURRENT_LIST_DIR}/*.cpp
-    ${CMAKE_CURRENT_BINARY_DIR}/*.c
-    ${CMAKE_CURRENT_BINARY_DIR}/*.cpp
-)
-
-add_executable(xy-compiler ${COMPILER_SRC})
+add_executable(xy-compiler
+    main.cpp
+    gen.cpp)
 
 target_link_libraries(xy-compiler
-    PUBLIC xy-compiler-parser
-    PUBLIC cxxopts
-    PUBLIC xy-rt)
+    PRIVATE xy-compiler-parser
+    PRIVATE cxxopts
+    PRIVATE xy-rt
+    PRIVATE ${llvm_libs})
 
 target_include_directories(xy-compiler
-    PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/"
+    PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/"
+    PRIVATE "${CMAKE_CURRENT_LIST_DIR}/"
 )

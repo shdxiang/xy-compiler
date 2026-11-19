@@ -1,0 +1,4 @@
+// expect-stderr: line 3: error: function parameters must be identifiers
+// expect-exit: 1
+f(1) {
+}

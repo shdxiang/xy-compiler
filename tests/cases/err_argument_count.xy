@@ -1,0 +1,4 @@
+// expect-stderr: line 4: error: function 'printi' expects 1 argument(s), got 2
+// expect-exit: 1
+extern printi(val)
+printi(1, 2)
