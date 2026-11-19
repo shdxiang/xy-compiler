@@ -14,7 +14,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y clang-format-18
 
       - name: Check formatting
-        run: CLANG_FORMAT=clang-format-18 scripts/format.sh --check
+        run: git ls-files '*.cpp' '*.h' | xargs clang-format-18 --dry-run --Werror
 
   linux:
     runs-on: ubuntu-24.04
@@ -32,7 +32,7 @@ jobs:
             zlib1g-dev libzstd-dev libedit-dev libxml2-dev libffi-dev libncurses-dev
 
       - name: Configure
-        run: cmake -S . -B build -G Ninja -DCOMPILE_DEMO=ON -DLLVM_DIR=/usr/lib/llvm-${{ matrix.llvm }}/lib/cmake/llvm
+        run: cmake -S . -B build -G Ninja -DLLVM_DIR=/usr/lib/llvm-${{ matrix.llvm }}/lib/cmake/llvm
 
       - name: Build
         run: cmake --build build

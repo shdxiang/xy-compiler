@@ -12,12 +12,8 @@
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
 
-#include <libxy/version.h>
-
 #include "ast.h"
 #include "gen.h"
-
-#include "version.hpp"
 
 extern FILE *yyin;
 extern int yydebug;
@@ -25,6 +21,8 @@ extern int yydebug;
 extern int yyparse();
 
 extern NBlock *programBlock;
+
+extern "C" long long printi(long long val);
 
 static bool writeIR(const CodeGenContext &context, const std::string &path) {
   if (path == "-") {
@@ -78,7 +76,9 @@ static int compileAndRun(const cxxopts::ParseResult &args) {
     return 0;
   }
 
-  /* Make the symbols of this process (including libxy) visible to the JIT */
+  /* Let `extern` declarations find the runtime and the C library */
+  llvm::sys::DynamicLibrary::AddSymbol("printi",
+                                       reinterpret_cast<void *>(&printi));
   llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
   try {
     return static_cast<int>(context.runCode());
@@ -119,13 +119,7 @@ int main(int argc, char **argv) {
     return 0;
   }
   if (args.count("version")) {
-    std::cout << "Version: " << VER << std::endl;
-    char buffer[256];
-    if (get_libxy_version(buffer, sizeof(buffer)) != 0) {
-      std::cerr << "failed to get libxy version." << std::endl;
-      return 1;
-    }
-    std::cout << "libxy version: " << buffer << std::endl;
+    std::cout << "xy-compiler " << XY_VERSION << std::endl;
     return 0;
   }
 

@@ -11,7 +11,7 @@
 ```bash
 cmake -S . -B build
 cmake --build build
-./build/bin/xy-compiler src/demo/demo.xy    # 输出 11
+./build/bin/xy-compiler demo.xy    # 输出 11
 ctest --test-dir build --output-on-failure  # 运行测试
 ```
 
@@ -35,12 +35,12 @@ ctest --test-dir build --output-on-failure  # 运行测试
 - 加（`+`）、减（`-`）、乘（`*`）、除（`/`）运算；
 - 等于（`==`）、不等于（`!=`）比较运算，结果为 `1` 或 `0`；
 - 变量赋值（`x = 1`）、函数定义和函数调用；
-- 用 `extern` 声明外部函数（用来调用运行时库中的 `printi` 打印计算结果）；
+- 用 `extern` 声明外部函数（例如用内置的 `printi` 打印计算结果）；
 - `//` 单行注释。
 
 完整的语法和语义说明见附录[语言参考](#语言参考)。
 
-下面是一个示例程序 [demo.xy](src/demo/demo.xy)，它会打印 `4 * 5 - (4 + 5)` 的结果 `11`：
+下面是一个示例程序 [demo.xy](demo.xy)，它会打印 `4 * 5 - (4 + 5)` 的结果 `11`：
 
 ```c
 extern printi(val)
@@ -89,8 +89,6 @@ printi(mult(4, 5) - sum(4, 5))
        zlib1g-dev libzstd-dev libedit-dev libxml2-dev libffi-dev libncurses-dev
    ```
 
-   也可以直接运行 [scripts/bootstrap.sh](scripts/bootstrap.sh)。
-
 2. macOS
 
    使用 **Homebrew** 安装依赖项：
@@ -99,17 +97,17 @@ printi(mult(4, 5) - sum(4, 5))
    brew install llvm cmake flex bison
    ```
 
-   配置时需要告诉 CMake LLVM 的位置：
+   macOS 自带的 Bison 版本太旧，配置时需要告诉 CMake 使用 Homebrew 安装的 Bison、Flex 和 LLVM：
 
    ```bash
-   cmake -S . -B build -DLLVM_DIR=$(brew --prefix llvm)/lib/cmake/llvm
+   cmake -S . -B build -DCMAKE_PREFIX_PATH="$(brew --prefix bison);$(brew --prefix flex);$(brew --prefix llvm)"
    ```
 
 3. Windows
 
    - **Visual Studio：** 推荐使用 2022 版，它自带满足要求的 CMake，也可以从 [CMake 官网](https://cmake.org/download/)单独下载；
    - **LLVM：** 使用 [vcpkg](https://github.com/microsoft/vcpkg) 安装（`vcpkg install llvm`），或者自行编译；
-   - **Flex 和 Bison：** 不需要单独安装，构建时会自动下载并编译 [winflexbison](https://github.com/LonghronShen/winflexbison)。
+   - **Flex 和 Bison：** 安装 [winflexbison](https://github.com/lexxmark/winflexbison)（如 `choco install winflexbison3`），并确保 `win_flex` 和 `win_bison` 在 `PATH` 中。
 
    注意持续集成只覆盖了 Linux，Windows 上的构建没有经过测试。
 
@@ -117,7 +115,7 @@ printi(mult(4, 5) - sum(4, 5))
 
 ## 词法分析器
 
-前面提到词法分析器要将源程序分解成单词。我们的语法很简单，单词只有标识符、数字、运算符、括号和大括号等几种。我们通过 Flex 来生成词法分析器的源码，Flex 使用的规则文件 [lexical.l](src/parser/lexical.l) 如下：
+前面提到词法分析器要将源程序分解成单词。我们的语法很简单，单词只有标识符、数字、运算符、括号和大括号等几种。我们通过 Flex 来生成词法分析器的源码，Flex 使用的规则文件 [lexical.l](src/lexical.l) 如下：
 
 ```lex
 %{
@@ -129,7 +127,7 @@ printi(mult(4, 5) - sum(4, 5))
 #define TOKEN(t)    (yylval.token = t)
 %}
 
-%option noyywrap nounput noinput yylineno
+%option noyywrap nounput noinput yylineno nounistd never-interactive
 
 %%
 
@@ -178,7 +176,7 @@ flex -o lexical.cpp lexical.l
 
 ## 语法分析器
 
-语法分析器的作用是构建抽象语法树，通俗地说，抽象语法树就是用树状结构来表示源码，每个节点都代表源码中的一种结构；对于我们要实现的语法，语法树的节点类型很简单，它们都定义在 [ast.h](src/parser/ast.h) 中，继承关系如下：
+语法分析器的作用是构建抽象语法树，通俗地说，抽象语法树就是用树状结构来表示源码，每个节点都代表源码中的一种结构；对于我们要实现的语法，语法树的节点类型很简单，它们都定义在 [ast.h](src/ast.h) 中，继承关系如下：
 
 ```mermaid
 flowchart LR
@@ -215,7 +213,7 @@ flowchart LR
     style statements fill:none,stroke:#43a047,stroke-dasharray:5 5
 ```
 
-现在我们使用 Bison 生成语法分析器代码，同样 Bison 需要一个规则文件 [syntactic.y](src/parser/syntactic.y)。是不是发现和 Flex 的规则文件很像呢？确实是这样，它也由 `%%` 分隔的 3 个部分组成，下面我们分别摘取每个部分的代码看一下，完整内容可以通过链接查看。
+现在我们使用 Bison 生成语法分析器代码，同样 Bison 需要一个规则文件 [syntactic.y](src/syntactic.y)。是不是发现和 Flex 的规则文件很像呢？确实是这样，它也由 `%%` 分隔的 3 个部分组成，下面我们分别摘取每个部分的代码看一下，完整内容可以通过链接查看。
 
 第 1 部分是声明。`%code` 块中的 C++ 代码会被原样复制到生成的源文件中；`%union` 列出了分析过程中各个符号的值可能的类型；`%token` 则定义了前面 Flex 使用的单词（如 `TLPAREN`）：
 
@@ -332,7 +330,7 @@ void yyerror(const char *s) {
 }
 ```
 
-像 `NFunctionDeclaration` 这样的节点类是我们自己定义的，它们都在 [ast.h](src/parser/ast.h) 中。所有节点都继承自 `Node`：
+像 `NFunctionDeclaration` 这样的节点类是我们自己定义的，它们都在 [ast.h](src/ast.h) 中。所有节点都继承自 `Node`：
 
 ```c++
 /* Base class of all AST nodes. Each node owns its children, so deleting the
@@ -372,7 +370,7 @@ bison -d -o syntactic.cpp syntactic.y
 
 ## 目标码生成
 
-最后一步是生成目标码，主角是 LLVM。我们遍历语法分析阶段生成的抽象语法树，为每种节点实现前面提到的虚函数 `codeGen()`，在其中调用 LLVM 的接口生成相应的目标码（LLVM IR）。这些代码都在 [gen.cpp](src/compiler/gen.cpp) 中，例如函数调用节点的生成代码：
+最后一步是生成目标码，主角是 LLVM。我们遍历语法分析阶段生成的抽象语法树，为每种节点实现前面提到的虚函数 `codeGen()`，在其中调用 LLVM 的接口生成相应的目标码（LLVM IR）。这些代码都在 [gen.cpp](src/gen.cpp) 中，例如函数调用节点的生成代码：
 
 ```c++
 Value *NMethodCall::codeGen(CodeGenContext &context) {
@@ -397,9 +395,9 @@ Value *NMethodCall::codeGen(CodeGenContext &context) {
 
 它先查找被调用的函数并检查参数个数，然后从左到右生成每个参数的代码，最后通过 LLVM 提供的 `IRBuilder` 生成调用指令。遇到调用不存在的函数、参数个数不对、使用未赋值的变量等错误时，会抛出带行号的 `CodeGenError`。生成完毕后还会用 LLVM 的 `verifyModule` 检查生成的代码是否合法。想了解更多 LLVM 的用法，可以参考 LLVM 官方的 [Kaleidoscope 教程](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/index.html)。
 
-简单回顾一下：Flex 生成词法分析器的源文件 `lexical.cpp`，Bison 生成语法分析器的源文件 `syntactic.cpp` 和头文件 `syntactic.hpp`；我们自己编写了抽象语法树的节点定义 [ast.h](src/parser/ast.h)、代码生成的上下文 [gen.h](src/compiler/gen.h) 和各节点的代码生成 [gen.cpp](src/compiler/gen.cpp)。为了输出程序的结果，运行时库中的 [printi.cpp](src/runtime/implementation/system/console/printi.cpp) 调用 C 语言库函数实现了打印一个整数（我们语言中的函数都返回整数，所以它返回传入的值）。
+简单回顾一下：Flex 生成词法分析器的源文件 `lexical.cpp`，Bison 生成语法分析器的源文件 `syntactic.cpp` 和头文件 `syntactic.hpp`；我们自己编写了抽象语法树的节点定义 [ast.h](src/ast.h)、代码生成的上下文 [gen.h](src/gen.h) 和各节点的代码生成 [gen.cpp](src/gen.cpp)。为了输出程序的结果，[runtime.cpp](src/runtime.cpp) 中的 `printi` 调用 C 语言库函数实现了打印一个整数（我们语言中的函数都返回整数，所以它返回传入的值）。
 
-最后还需要一个 `main` 函数作为编译器的入口，它在 [main.cpp](src/compiler/main.cpp) 里。`main` 函数解析命令行参数、打开输入文件后，调用 `compileAndRun` 完成编译和运行：
+最后还需要一个 `main` 函数作为编译器的入口，它在 [main.cpp](src/main.cpp) 里。`main` 函数解析命令行参数、打开输入文件后，调用 `compileAndRun` 完成编译和运行：
 
 ```c++
 /* Parse the program from yyin, compile it, then run it with the JIT */
@@ -438,7 +436,9 @@ static int compileAndRun(const cxxopts::ParseResult &args) {
     return 0;
   }
 
-  /* Make the symbols of this process (including libxy) visible to the JIT */
+  /* Let `extern` declarations find the runtime and the C library */
+  llvm::sys::DynamicLibrary::AddSymbol("printi",
+                                       reinterpret_cast<void *>(&printi));
   llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
   try {
     return static_cast<int>(context.runCode());
@@ -464,12 +464,11 @@ cmake --build build
 
 ## 编译测试
 
-我们使用之前提到的实例 [demo.xy](src/demo/demo.xy) 来测试，可以将源文件作为参数传给 `xy-compiler`，也可以通过标准输入传入：
+我们使用之前提到的实例 [demo.xy](demo.xy) 来测试，可以将源文件作为参数传给 `xy-compiler`，也可以通过标准输入传入：
 
 ```bash
-cd ./build/bin
-./xy-compiler demo.xy
-cat demo.xy | ./xy-compiler
+./build/bin/xy-compiler demo.xy
+./build/bin/xy-compiler < demo.xy
 ```
 
 输出如下：
@@ -481,7 +480,7 @@ cat demo.xy | ./xy-compiler
 可以看到正确输出了期望的结果。我们还可以查看生成的 LLVM IR（其他选项见附录[命令行用法](#命令行用法)），其中每个函数的参数先被存入栈上的变量（`alloca`），使用时再读出来（`load`）：
 
 ```bash
-./xy-compiler --no-run -o - demo.xy
+./build/bin/xy-compiler --no-run -o - demo.xy
 ```
 
 ```llvm
@@ -527,7 +526,7 @@ entry:
 源码有错误时，编译器会报告错误所在的行并以非 0 退出码退出：
 
 ```bash
-$ echo 'printi(1)' | ./xy-compiler
+$ echo 'printi(1)' | ./build/bin/xy-compiler
 line 1: error: call to undefined function 'printi'
 ```
 
@@ -548,7 +547,7 @@ xy-compiler [选项] [文件]
 | `-n, --no-run` | 只编译，不运行程序 |
 | `-v, --verbose` | 在标准错误输出中打印代码生成的过程 |
 | `-d, --debug` | 在标准错误输出中打印 `语法分析器` 的分析过程 |
-| `--version` | 打印编译器和运行时库的版本 |
+| `--version` | 打印编译器的版本 |
 | `-h, --help` | 打印帮助 |
 
 退出码：
@@ -611,23 +610,21 @@ xy-compiler [选项] [文件]
 - 函数必须先定义或声明再调用，参数个数必须一致；在函数体内定义的函数和顶层定义的函数一样是全局的，但不能访问外层函数的变量；
 - 函数的返回值是执行到的第一个 `return` 的值，没有执行 `return` 时返回 `0`，`return` 之后的语句不会执行；
 - 名称 `main` 被保留给程序的入口函数，不能用作函数名；
-- `extern` 声明的函数在运行时按名称在编译器进程中查找，它的参数和返回值都应该是 `long long`。运行时库 [libxy](src/runtime) 提供了 `printi(val)`，它打印 `val` 和换行，然后返回 `val`。
+- `extern` 声明的函数在运行时按名称在编译器进程中查找，它的参数和返回值都应该是 `long long`。编译器内置的运行时函数 `printi(val)`（见 [runtime.cpp](src/runtime.cpp)）打印 `val` 和换行，然后返回 `val`。
 
 ## 项目结构
 
 | 路径 | 说明 |
 | --- | --- |
-| [src/parser/lexical.l](src/parser/lexical.l) | 词法规则（Flex） |
-| [src/parser/syntactic.y](src/parser/syntactic.y) | 语法规则（Bison） |
-| [src/parser/ast.h](src/parser/ast.h) | 抽象语法树的节点 |
-| [src/compiler/gen.h](src/compiler/gen.h)、[gen.cpp](src/compiler/gen.cpp) | 目标码生成和 JIT 运行 |
-| [src/compiler/main.cpp](src/compiler/main.cpp) | 命令行入口 |
-| [src/runtime](src/runtime) | 运行时库 libxy（`printi` 和版本信息） |
-| [src/demo/demo.xy](src/demo/demo.xy) | 示例程序 |
+| [src/lexical.l](src/lexical.l) | 词法规则（Flex） |
+| [src/syntactic.y](src/syntactic.y) | 语法规则（Bison） |
+| [src/ast.h](src/ast.h) | 抽象语法树的节点 |
+| [src/gen.h](src/gen.h)、[src/gen.cpp](src/gen.cpp) | 目标码生成和 JIT 运行 |
+| [src/main.cpp](src/main.cpp) | 命令行入口 |
+| [src/runtime.cpp](src/runtime.cpp) | 程序可以通过 `extern` 调用的运行时函数（`printi`） |
+| [demo.xy](demo.xy) | 示例程序 |
 | [tests](tests) | 测试用例和测试脚本 |
-| [external/InitializeExternalComponents.cmake](external/InitializeExternalComponents.cmake) | 查找或下载依赖项（LLVM、cxxopts，以及 Windows 上的 winflexbison） |
-| [cmake](cmake) | CMake 模块 |
-| [scripts](scripts) | 安装依赖项（`bootstrap.sh`）和格式化代码（`format.sh`）的脚本 |
+| [CMakeLists.txt](CMakeLists.txt) | 构建脚本：查找依赖项、生成词法和语法分析器、编译链接、定义测试 |
 
 ## 开发
 
@@ -638,7 +635,6 @@ xy-compiler [选项] [文件]
 | `CMAKE_BUILD_TYPE` | `Release` | 构建类型，如 `Debug` |
 | `LLVM_DIR` | 自动查找 | LLVM 的 CMake 配置目录，如 `/usr/lib/llvm-18/lib/cmake/llvm` |
 | `XY_BUILD_TESTS` | `ON` | 是否构建测试 |
-| `COMPILE_DEMO` | `OFF` | 构建时把 `demo.xy` 编译成 `build/bin/demo.ll` |
 
 ### 测试
 
@@ -659,18 +655,18 @@ printi(1 + 2)
 - `// expect-stderr:` 标准错误中应该包含的内容，不写时标准错误必须为空；
 - `// expect-exit:` 期望的退出码，默认为 `0`。
 
-新增的 `.xy` 文件会被自动加入测试（需要重新运行一次 CMake 配置）。命令行相关的测试在 [tests/CMakeLists.txt](tests/CMakeLists.txt) 中。
+新增的 `.xy` 文件会被自动加入测试（需要重新运行一次 CMake 配置）。命令行相关的测试在 [CMakeLists.txt](CMakeLists.txt) 末尾。
 
 ### 代码格式
 
 C++ 代码使用 [.clang-format](.clang-format) 中的 LLVM 风格：
 
 ```bash
-scripts/format.sh          # 格式化
-scripts/format.sh --check  # 只检查，CI 中会运行
+git ls-files '*.cpp' '*.h' | xargs clang-format -i                  # 格式化
+git ls-files '*.cpp' '*.h' | xargs clang-format --dry-run --Werror  # 只检查，CI 中会运行
 ```
 
-可以通过 `CLANG_FORMAT` 环境变量指定 clang-format 的路径，CI 使用的是 `clang-format-18`。
+CI 使用 `clang-format-18`。
 
 ### 持续集成
 

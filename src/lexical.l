@@ -7,7 +7,7 @@
 #define TOKEN(t)    (yylval.token = t)
 %}
 
-%option noyywrap nounput noinput yylineno
+%option noyywrap nounput noinput yylineno nounistd never-interactive
 
 %%
 

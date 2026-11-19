@@ -7,7 +7,7 @@ insert_final_newline = true
 trim_trailing_whitespace = true
 indent_style = space
 
-[*.{cpp,h,hpp,in,l,y}]
+[*.{cpp,h,l,y}]
 indent_size = 2
 
 [{CMakeLists.txt,*.cmake}]

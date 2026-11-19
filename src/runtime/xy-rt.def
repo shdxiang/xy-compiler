@@ -1,4 +1,0 @@
-LIBRARY xy-rt
-EXPORTS
-   printi
-   get_libxy_version
