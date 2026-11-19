@@ -138,7 +138,7 @@ printi(mult(4, 5) - sum(4, 5))
 
 前面提到 `词法分析器` 要将源程序分解成 `单词`，我们的语法格式很简单，只包括：标识符，数字，数学运算符，括号和大括号等，我们将通过 Flex 来生成 `词法分析器` 的源码，给 Flex 使用的规则文件 [lexical.l](src/parser/lexical.l) 如下：
 
-```c++
+```lex
 %{
 #include <string>
 #include "ast.h"
@@ -206,7 +206,7 @@ flowchart LR
         NMethodCall["NMethodCall<br/>f(a, b)"]
         NBinaryOperator["NBinaryOperator<br/>a + b"]
         NAssignment["NAssignment<br/>x = 1"]
-        NBlock["NBlock<br/>{ ... }"]
+        NBlock["NBlock<br/>{ x = 1 }"]
     end
 
     subgraph statements [语句]
@@ -214,7 +214,7 @@ flowchart LR
         NExpressionStatement["NExpressionStatement<br/>f(1)"]
         NReturnStatement["NReturnStatement<br/>return x"]
         NExternDeclaration["NExternDeclaration<br/>extern f(a)"]
-        NFunctionDeclaration["NFunctionDeclaration<br/>f(a) { ... }"]
+        NFunctionDeclaration["NFunctionDeclaration<br/>f(a) { return a }"]
     end
 
     NExpression --> NInteger & NIdentifier & NMethodCall & NBinaryOperator & NAssignment & NBlock
@@ -230,64 +230,77 @@ flowchart LR
     style statements fill:none,stroke:#43a047,stroke-dasharray:5 5
 ```
 
-现在我们使用 Bison 生成 `语法分析器` 代码，同样 Bison 需要一个规则文件，我们的规则文件 [syntactic.y](src/parser/syntactic.y) 如下，限于篇幅，省略了某些部分，可以通过链接查看完整内容：
+现在我们使用 Bison 生成 `语法分析器` 代码，同样 Bison 需要一个规则文件 [syntactic.y](src/parser/syntactic.y)。是不是发现和 Flex 的规则文件很像呢？确实是这样，它也由 `%%` 分隔的 3 个部分组成，下面我们分别摘取每个部分的代码看一下，完整内容可以通过链接查看。
 
-```c++
-%code requires {
-    #include "ast.h"
+第 1 部分是声明。`%code` 块中的 C++ 代码会被原样复制到生成的源文件中；`%union` 列出了分析过程中各个符号的值可能的类型；`%token` 则定义了前面 Flex 使用的单词（如 `TLPAREN`）：
+
+```yacc
+%union {
+    NBlock *block;
+    NExpression *expr;
+    NStatement *stmt;
+    NIdentifier *ident;
+    VariableList *varvec;
+    ExpressionList *exprvec;
+    std::string *string;
+    int token;
 }
 
-%code {
-    ...
-    NBlock *programBlock; /* the top level root node of our final AST */
-
-    extern int yylex();
-    void yyerror(const char *s);
-    ...
-}
-
-...
-
+/* Define our terminal symbols (tokens). This should
+   match our lexical.l lex file. We also define the node type
+   they represent.
+ */
+%token <string> TIDENTIFIER "identifier" TINTEGER "integer"
+%token <token> TCEQ "==" TCNE "!=" TEQUAL "="
 %token <token> TLPAREN "(" TRPAREN ")" TLBRACE "{" TRBRACE "}" TCOMMA ","
-
-...
-
-%%
-
-program:
-  stmts { programBlock = $1; }
-        ;
-...
-
-func_decl:
-  ident TLPAREN call_args TRPAREN block {
-      VariableList params;
-      if (!toParameters(*$3, params)) {
-          actionError($1->line, "function parameters must be identifiers");
-          delete $1; delete $3; delete $5;
-          YYERROR;
-      }
-      $$ = new NFunctionDeclaration($1, std::move(params), $5);
-      delete $3;
-  }
-;
-
-...
-
-%%
-```
-
-是不是发现和 Flex 的规则文件很像呢？确实是这样，它也由 3 个部分组成，同样，第 1 部分的 C++ 代码会被复制到生成的源文件中，还可以看到这里通过以下语法定义了前面 Flex 使用的宏：
-
-```c++
-%token <token> TLPAREN "(" TRPAREN ")" TLBRACE "{" TRBRACE "}" TCOMMA ","
+%token <token> TPLUS "+" TMINUS "-" TMUL "*" TDIV "/"
+%token <token> TRETURN "return" TEXTERN "extern"
+%token <token> TINVALID "invalid character"
 ```
 
 单词名后面引号里的是它的别名，Bison 报告语法错误时会用别名代替单词名，如 `unexpected ), expecting identifier`。
 
-比较不同的是第 2 部分，不像 Flex 通过 `正则表达式` 定义规则，这里使用的是 `巴科斯范式（BNF: Backus-Naur Form）` 的形式定义了我们识别的语法结构。如下的语法表示函数：
+运算符的优先级也在这一部分声明，越靠后的优先级越高：
 
-```c++
+```yacc
+/* Operator precedence, from lowest to highest */
+%precedence TEQUAL
+%nonassoc TCEQ TCNE
+%left TPLUS TMINUS
+%left TMUL TDIV
+/* An identifier followed by "(" is always a call, never a variable
+   followed by a parenthesized expression statement */
+%precedence VARIABLE
+%precedence TLPAREN
+```
+
+最后两行解决了一个歧义：语句之间没有分隔符，`f (x)` 既可以理解成调用 `f(x)`，也可以理解成变量 `f` 后面跟着一个表达式 `(x)`，这里规定标识符后面跟 `(` 时总是函数调用。
+
+第 2 部分是语法规则。不像 Flex 通过 `正则表达式` 定义规则，这里使用的是 `巴科斯范式（BNF: Backus-Naur Form）` 的形式定义了我们识别的语法结构。例如程序由一系列语句组成，语句有 4 种：
+
+```yacc
+program:
+  stmts { programBlock = $1; }
+;
+
+stmts:
+  %empty { $$ = new NBlock(); }
+| stmts stmt { $1->statements.emplace_back($2); $$ = $1; }
+;
+
+stmt:
+  func_decl
+| extern_decl
+| expr { $$ = new NExpressionStatement($1); }
+| TRETURN expr { $$ = new NReturnStatement($2); }
+;
+```
+
+规则后面大括号中间的是 `动作` 代码，`$$` 表示规则左边符号的值，`$1`、`$2` 等依次表示右边各个符号的值。上面的动作就是在 `抽象语法树` 中生成相应的节点。再看看表示函数定义的规则：
+
+```yacc
+/* The parameter list is parsed as call_args so the parser does not have to
+   decide between a declaration and a call before it sees the "{" */
 func_decl:
   ident TLPAREN call_args TRPAREN block {
       VariableList params;
@@ -302,11 +315,55 @@ func_decl:
 ;
 ```
 
-可以看到后面大括号中间的也是 `动作` 代码，上例的动作是在 `抽象语法树` 中生成一个函数的节点。注意这里的参数列表用的是和函数调用相同的 `call_args`：`语法分析器` 只向前看一个单词，读到 `f(a` 时还无法判断这是函数定义还是函数调用 `f(a)`，要等到看见 `{` 才能确定，所以先统一按调用参数解析，确认是函数定义后再检查每个参数都是标识符。我们还用 `%left`、`%precedence` 等声明了运算符的优先级，构建时 Bison 若发现语法有冲突会直接报错。其实这部分的其他规则也是生成相应类型的节点到语法树中。像 `NFunctionDeclaration` 这是一个我们自己定义的节点类，我们在 [ast.h](src/parser/ast.h) 中定义了我们所要用到的节点，同样的，我们摘取一段代码如下：
+注意这里的参数列表用的是和函数调用相同的 `call_args`：`语法分析器` 只向前看一个单词，读到 `f(a` 时还无法判断这是函数定义还是函数调用 `f(a)`，要等到看见 `{` 才能确定，所以先统一按调用参数解析，确认是函数定义后再用第 1 部分 `%code` 块中定义的 `toParameters` 检查每个参数都是标识符：
 
 ```c++
-...
+/* Function parameters are parsed like call arguments (see func_decl);
+   this checks that every argument is a plain identifier. */
+static bool toParameters(ExpressionList &args, VariableList &params) {
+    for (auto &arg : args) {
+        if (!dynamic_cast<NIdentifier *>(arg.get())) {
+            return false;
+        }
+    }
+    for (auto &arg : args) {
+        params.emplace_back(static_cast<NIdentifier *>(arg.release()));
+    }
+    return true;
+}
+```
 
+构建时 Bison 若发现语法规则有冲突（也就是有歧义）会直接报错。
+
+第 3 部分是 `yyerror` 函数，`语法分析器` 遇到语法错误时会调用它，我们在错误信息中加上了行号和出错位置的单词：
+
+```c++
+void yyerror(const char *s) {
+    if (yychar == YYEOF || yychar == YYEMPTY) {
+        std::fprintf(stderr, "line %d: error: %s\n", yylineno, s);
+    } else {
+        std::fprintf(stderr, "line %d: error: %s, near '%s'\n", yylineno, s, yytext);
+    }
+}
+```
+
+像 `NFunctionDeclaration` 这样的节点类是我们自己定义的，它们都在 [ast.h](src/parser/ast.h) 中。所有节点都继承自 `Node`：
+
+```c++
+/* Base class of all AST nodes. Each node owns its children, so deleting the
+   root block frees the whole tree. `line` is the source line used in error
+   messages. */
+class Node {
+public:
+  int line = yylineno;
+  virtual ~Node() = default;
+  virtual llvm::Value *codeGen(CodeGenContext &context) = 0;
+};
+```
+
+函数定义节点如下：
+
+```c++
 class NFunctionDeclaration : public NStatement {
 public:
   std::unique_ptr<NIdentifier> id;
@@ -318,11 +375,9 @@ public:
   }
   llvm::Value *codeGen(CodeGenContext &context) override;
 };
-
-...
 ```
 
-可以看到，它有 `标识符（id）`，`参数列表（arguments）`，`函数体（block）` 这些成员（用 `std::unique_ptr` 持有，节点释放时子节点也随之释放），在语法分析阶段会设置好这些成员的内容供后面的 `目标码生成` 阶段使用。还可以看到有一个 `codeGen()` 虚函数，你可能猜到了，后面就是通过调用它来生成相应的目标代码。
+可以看到，它有 `标识符（id）`，`参数列表（arguments）`，`函数体（block）` 这些成员（用 `std::unique_ptr` 持有，节点释放时子节点也随之释放），在语法分析阶段会设置好这些成员的内容供后面的 `目标码生成` 阶段使用。还可以看到每个节点都有一个 `codeGen()` 虚函数，你可能猜到了，后面就是通过调用它来生成相应的目标代码。
 
 我们可以通过以下命令调用 Bison 生成 `语法分析器` 的源码文件，这里我们使用 `-d` 使头文件和源文件分开，因为前面 `词法分析器` 的源码使用了这里定义的一些宏，所以需要使用这个头文件，这里将会生成 `syntactic.cpp` 和 `syntactic.hpp`：
 
@@ -332,11 +387,9 @@ bison -d -o syntactic.cpp syntactic.y
 
 ## 目标码生成
 
-这是最后一步了，这一步的主角是前面提到 LLVM，LLVM 是一个构建编译器的框架系统，我们使用它遍历 `语法分析` 阶段生成的 `抽象语法树`，然后为每个节点生成相应的 `目标码`。当然，无法避免的是我们需要使用 LLVM 提供的函数来编写生成目标码的源码，就是实现前面提到的虚函数 `codeGen()`，是不是有点拗口？不过确实是这样。我们在 [gen.cpp](src/compiler/gen.cpp) 中编写了不同节点的生成代码，我们摘取一段看一下：
+这是最后一步了，这一步的主角是前面提到 LLVM，LLVM 是一个构建编译器的框架系统，我们使用它遍历 `语法分析` 阶段生成的 `抽象语法树`，然后为每个节点生成相应的 `目标码`。当然，无法避免的是我们需要使用 LLVM 提供的函数来编写生成目标码的源码，就是实现前面提到的虚函数 `codeGen()`，是不是有点拗口？不过确实是这样。我们在 [gen.cpp](src/compiler/gen.cpp) 中编写了不同节点的生成代码，例如函数调用节点的生成代码：
 
 ```c++
-...
-
 Value *NMethodCall::codeGen(CodeGenContext &context) {
   context.trace("Creating method call: " + id->name);
   Function *function = context.module->getFunction(id->name);
@@ -355,30 +408,28 @@ Value *NMethodCall::codeGen(CodeGenContext &context) {
   }
   return context.builder.CreateCall(function, args);
 }
-
-...
-
 ```
 
 看起来有点复杂，简单来说就是通过 LLVM 提供的 `IRBuilder` 接口来生成 `目标码`；遇到调用不存在的函数、参数个数不对、使用未赋值的变量等错误时，会抛出带行号的 `CodeGenError`。生成完毕后还会用 LLVM 的 `verifyModule` 检查生成的代码是否合法。需要了解更多的话可以去 LLVM 的官网学习一下。
 
 至此，我们所有的工作基本都做完了。简单回顾一下：我们先通过 Flex 生成 `词法分析器` 源码文件 `lexical.cpp`，然后通过 Bison 生成 `语法分析器` 源码文件 `syntactic.cpp` 和头文件 `syntactic.hpp`，我们自己编写了 `抽象语法树` 节点定义文件 [ast.h](src/parser/ast.h) 和 `目标码` 生成文件 [gen.cpp](src/compiler/gen.cpp)，还有一个 [gen.h](src/compiler/gen.h) 包含一点 LLVM 环境相关的代码，为了输出我们程序的结果，还在 [printi.cpp](src/runtime/implementation/system/console/printi.cpp) 里简单的通过调用 C 语言库函数实现了输出一个整数（我们语言中的函数都返回整数，所以它返回传入的值）。
 
-对了，我们还需要一个 `main` 函数作为编译器的入口函数，它在 [main.cpp](src/compiler/main.cpp) 里：
+对了，我们还需要一个 `main` 函数作为编译器的入口函数，它在 [main.cpp](src/compiler/main.cpp) 里。`main` 函数解析命令行参数、打开输入文件后，调用 `compileAndRun` 完成编译和运行：
 
 ```c++
-
-...
-
-int main(int argc, char **argv) {
-  ...
+/* Parse the program from yyin, compile it, then run it with the JIT */
+static int compileAndRun(const cxxopts::ParseResult &args) {
+  yydebug = args.count("debug") ? 1 : 0;
   int parseResult = yyparse();
-  ...
+  if (yyin != stdin) {
+    std::fclose(yyin);
+  }
   if (parseResult != 0 || !programBlock) {
     return 1;
   }
   std::unique_ptr<NBlock> program(programBlock);
-  ...
+  programBlock = nullptr;
+
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmPrinter();
   llvm::InitializeNativeTargetAsmParser();
@@ -389,19 +440,31 @@ int main(int argc, char **argv) {
   } catch (const CodeGenError &ex) {
     std::cerr << "line " << ex.line << ": error: " << ex.what() << std::endl;
     return 1;
+  } catch (const std::exception &ex) {
+    std::cerr << "internal error: " << ex.what() << std::endl;
+    return 1;
   }
-  ...
+
+  if (args.count("output") &&
+      !writeIR(context, args["output"].as<std::string>())) {
+    return 1;
+  }
+  if (args.count("no-run")) {
+    return 0;
+  }
+
+  /* Make the symbols of this process (including libxy) visible to the JIT */
   llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
   try {
     return static_cast<int>(context.runCode());
   } catch (const std::exception &ex) {
-    ...
+    std::cerr << "error: " << ex.what() << std::endl;
+    return 1;
   }
 }
-
 ```
 
-我们可以看到其调用了 `yyparse()` 做 `语法分析`，（`yyparse()` 内部会先调用 `yylex()` 做 `词法分析`）；然后是一系列的 LLVM 初始化代码，`context.generateCode(*programBlock)` 是开始生成 `目标码`；最后是 `context.runCode()` 来运行代码，这里使用了 LLVM 的 `JIT（Just In Time）` 来直接运行代码，没有链接的过程。顶层的 `return` 语句的值会作为进程的退出码。
+我们可以看到其调用了 `yyparse()` 做 `语法分析`（`yyparse()` 内部会先调用 `yylex()` 做 `词法分析`）；然后是一系列的 LLVM 初始化代码，`context.generateCode(*program)` 开始生成 `目标码`；最后是 `context.runCode()` 来运行代码，这里使用了 LLVM 的 `JIT（Just In Time）` 来直接运行代码，没有链接的过程。顶层的 `return` 语句的值会作为进程的退出码。
 
 现在我们可以用这些文件生成我们的编译器了，需要说明一下，因为 `词法分析器` 的源码使用了一些 `语法分析器` 头文件中的宏，所以正确的生成顺序是这样的：
 
@@ -444,7 +507,31 @@ cat demo.xy | ./xy-compiler
 ```
 
 ```llvm
-...
+; ModuleID = 'main'
+source_filename = "main"
+
+define i64 @main() {
+entry:
+  %0 = call i64 @mult(i64 4, i64 5)
+  %1 = call i64 @sum(i64 4, i64 5)
+  %2 = sub i64 %0, %1
+  %3 = call i64 @printi(i64 %2)
+  ret i64 0
+}
+
+declare i64 @printi(i64)
+
+define internal i64 @sum(i64 %a, i64 %b) {
+entry:
+  %a.addr = alloca i64, align 8
+  %b.addr = alloca i64, align 8
+  store i64 %a, ptr %a.addr, align 4
+  store i64 %b, ptr %b.addr, align 4
+  %a1 = load i64, ptr %a.addr, align 4
+  %b2 = load i64, ptr %b.addr, align 4
+  %0 = add i64 %a1, %b2
+  ret i64 %0
+}
 
 define internal i64 @mult(i64 %a, i64 %b) {
 entry:

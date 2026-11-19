@@ -42,6 +42,52 @@ static bool writeIR(const CodeGenContext &context, const std::string &path) {
   return true;
 }
 
+/* Parse the program from yyin, compile it, then run it with the JIT */
+static int compileAndRun(const cxxopts::ParseResult &args) {
+  yydebug = args.count("debug") ? 1 : 0;
+  int parseResult = yyparse();
+  if (yyin != stdin) {
+    std::fclose(yyin);
+  }
+  if (parseResult != 0 || !programBlock) {
+    return 1;
+  }
+  std::unique_ptr<NBlock> program(programBlock);
+  programBlock = nullptr;
+
+  llvm::InitializeNativeTarget();
+  llvm::InitializeNativeTargetAsmPrinter();
+  llvm::InitializeNativeTargetAsmParser();
+
+  CodeGenContext context(args.count("verbose") > 0);
+  try {
+    context.generateCode(*program);
+  } catch (const CodeGenError &ex) {
+    std::cerr << "line " << ex.line << ": error: " << ex.what() << std::endl;
+    return 1;
+  } catch (const std::exception &ex) {
+    std::cerr << "internal error: " << ex.what() << std::endl;
+    return 1;
+  }
+
+  if (args.count("output") &&
+      !writeIR(context, args["output"].as<std::string>())) {
+    return 1;
+  }
+  if (args.count("no-run")) {
+    return 0;
+  }
+
+  /* Make the symbols of this process (including libxy) visible to the JIT */
+  llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
+  try {
+    return static_cast<int>(context.runCode());
+  } catch (const std::exception &ex) {
+    std::cerr << "error: " << ex.what() << std::endl;
+    return 1;
+  }
+}
+
 int main(int argc, char **argv) {
   cxxopts::Options options("xy-compiler", "A toy compiler based on LLVM JIT.");
   options.positional_help("[file]").show_positional_help();
@@ -94,46 +140,5 @@ int main(int argc, char **argv) {
     }
   }
 
-  yydebug = args.count("debug") ? 1 : 0;
-  int parseResult = yyparse();
-  if (yyin != stdin) {
-    std::fclose(yyin);
-  }
-  if (parseResult != 0 || !programBlock) {
-    return 1;
-  }
-  std::unique_ptr<NBlock> program(programBlock);
-  programBlock = nullptr;
-
-  llvm::InitializeNativeTarget();
-  llvm::InitializeNativeTargetAsmPrinter();
-  llvm::InitializeNativeTargetAsmParser();
-
-  CodeGenContext context(args.count("verbose") > 0);
-  try {
-    context.generateCode(*program);
-  } catch (const CodeGenError &ex) {
-    std::cerr << "line " << ex.line << ": error: " << ex.what() << std::endl;
-    return 1;
-  } catch (const std::exception &ex) {
-    std::cerr << "internal error: " << ex.what() << std::endl;
-    return 1;
-  }
-
-  if (args.count("output") &&
-      !writeIR(context, args["output"].as<std::string>())) {
-    return 1;
-  }
-  if (args.count("no-run")) {
-    return 0;
-  }
-
-  /* Make the symbols of this process (including libxy) visible to the JIT */
-  llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
-  try {
-    return static_cast<int>(context.runCode());
-  } catch (const std::exception &ex) {
-    std::cerr << "error: " << ex.what() << std::endl;
-    return 1;
-  }
+  return compileAndRun(args);
 }
